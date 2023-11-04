@@ -1,5 +1,6 @@
 use std::path::{PathBuf};
 use clap::Parser;
+use crate::input::parse_input;
 
 mod input;
 mod output;
@@ -21,8 +22,8 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    //args an Einlesefunktion weiter geben
+    let input = parse_input(args.path);
+    println!("{:?}", input)
     //algo starten
-    //ausgabes
-
+    //ausgabe
 }
