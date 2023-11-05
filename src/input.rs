@@ -35,7 +35,7 @@ impl SortedInput {
 }
 
 pub fn parse_input(path_buf: PathBuf) -> Result<SortedInput, Error> { //TODO schöner aufteilen in read+parse
-    let data = match fs::read_to_string(path_buf) {
+    let data = match fs::read_to_string(path_buf) { //TODO Wann soll ich errors/exceptions schmeißen?
         Ok(str) => str,
         Err(e) => return Err(e),
     };
