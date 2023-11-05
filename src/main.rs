@@ -1,6 +1,8 @@
 use std::path::{PathBuf};
 use clap::Parser;
 use crate::input::parse_input;
+use crate::output::{Schedule, Solution};
+use crate::output::output;
 
 mod input;
 mod output;
@@ -17,13 +19,15 @@ struct Args {
     #[arg(short, long, action)]
     write: bool,
 
-    //TODO hier können mit der Zeit weitere args eingebaut werden
+    //hier können mit der Zeit weitere args eingebaut werden
 }
 
-fn main() {
+fn main() {//TODO bissel logging hinzufügen
     let args = Args::parse();
     let input = parse_input(args.path);
-    println!("{:?}", input)
-    //algo starten
-    //ausgabe
+    //println!("{:?}", input);
+    //algo starten...
+    let s = Solution::new(51, Schedule::new(vec![(3, 0), (2, 44), (1, 0)]));
+
+    output(s, args.write);
 }
