@@ -18,7 +18,7 @@ struct Args {
     /// Whether the output should be written in a file or not
     #[arg(short, long, action)]
     write: bool,
-
+    //TODO arg für algorithmus auswahl + für write path
     //hier können mit der Zeit weitere args eingebaut werden
 }
 
