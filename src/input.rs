@@ -1,8 +1,8 @@
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
+
 use permutation::Permutation;
-use tokenizers::Tokenizer;
 
 #[derive(Debug)]
 struct Input {
