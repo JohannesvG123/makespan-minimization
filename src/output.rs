@@ -2,7 +2,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::Write;
 
-//TODO Überprüfung ob der schedule usw gültig ist muss hier nicht gemacht werden oder?
 #[derive(Debug)]
 pub struct Solution {
     c_max: i32,
