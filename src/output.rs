@@ -43,6 +43,7 @@ impl fmt::Display for Schedule {
 pub fn output(solution: Solution, write: bool, write_name: Option<String>) {
     if write {
         let write_name = write_name.unwrap();
+        println!("writing output in \"{}\" ...", format!("data/{}.txt", write_name));
         let mut file = File::create(format!("data/{}.txt", write_name)).unwrap();
         file.write_all(solution.to_string().as_bytes()).unwrap();
     } else {

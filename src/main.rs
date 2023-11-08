@@ -44,7 +44,7 @@ fn main() {
     println!("{:?}", args); //---nur zum debuggen---
     let input = parse_input(args.path);
     println!("{:?}", input); //---nur zum debuggen---
-    //algo starten...
+    //algo starten und logging nicht vergessen bidde dange...
     let s = Solution::new(51, Schedule::new(vec![(3, 0), (2, 44), (1, 0)]));
 
     output(s, args.write, args.write_name);

@@ -35,12 +35,14 @@ impl SortedInput {
 }
 
 pub fn parse_input(path_buf: PathBuf) -> Result<SortedInput, Error> { //TODO schöner aufteilen in read+parse
+    println!("reading input...");
     let data = match fs::read_to_string(path_buf) { //TODO Wann soll ich errors/exceptions schmeißen?
         Ok(str) => str,
         Err(e) => return Err(e),
     };
     //TODO daten tokenized einlesen aber des war mir jetzt zu blöd - desshalb jz erstmal so low^^
 
+    println!("parsing input...");
     let mut split = data.split_whitespace();
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();
