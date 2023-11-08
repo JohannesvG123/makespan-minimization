@@ -40,9 +40,10 @@ impl fmt::Display for Schedule {
     }
 }
 
-pub fn output(solution: Solution, write: bool) {
+pub fn output(solution: Solution, write: bool, write_name: Option<String>) {
     if write {
-        let mut file = File::create("data/output.txt").unwrap();//TODO Namen dynamisch anpassen
+        let write_name = write_name.unwrap();
+        let mut file = File::create(format!("data/{}.txt", write_name)).unwrap();
         file.write_all(solution.to_string().as_bytes()).unwrap();
     } else {
         println!("{}", solution);

@@ -1,13 +1,15 @@
-use std::path::{PathBuf};
-use clap::Parser;
+use std::hash::Hash;
+use std::path::PathBuf;
+
+use clap::{arg, Parser, ValueEnum};
+
 use crate::input::parse_input;
-use crate::output::{Schedule, Solution};
-use crate::output::output;
+use crate::output::{output, Schedule, Solution};
 
 mod input;
 mod output;
 
-/// Todoo makespan minimization bliblablub
+/// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -16,18 +18,34 @@ struct Args {
     path: PathBuf,
 
     /// Whether the output should be written in a file or not
-    #[arg(short, long, action)]
+    #[arg(short = 'w', long, action)]
     write: bool,
-    //TODO arg für algorithmus auswahl + für write path
-    //hier können mit der Zeit weitere args eingebaut werden
+
+    /// File name of the output file
+    #[arg(short = 'n', long, requires = "write")]
+    write_name: Option<String>,
+
+    /// Algorithm(s) to use
+    #[arg(short, long, num_args = 1..,)]
+    algos: Vec<Algorithm>,
+
 }
 
-fn main() {//TODO bissel logging hinzufügen
+#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash)]
+enum Algorithm {
+    //TODO algos einfügen und iwi auf die jeweilige fn mappen
+    Algo1,
+    Algo2,
+    Algo3,
+}
+
+fn main() {
     let args = Args::parse();
+    println!("{:?}", args); //---nur zum debuggen---
     let input = parse_input(args.path);
-    //println!("{:?}", input);
+    println!("{:?}", input); //---nur zum debuggen---
     //algo starten...
     let s = Solution::new(51, Schedule::new(vec![(3, 0), (2, 44), (1, 0)]));
 
-    output(s, args.write);
+    output(s, args.write, args.write_name);
 }
