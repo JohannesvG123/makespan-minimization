@@ -25,9 +25,10 @@ pub struct SortedInput {
 impl SortedInput {
     pub fn new(machine_count: u32, jobs: Vec<u32>) -> Self {
         let mut input = Input::new(machine_count, jobs);
-        let permutation = permutation::sort(&(input.jobs));
-        input.jobs.sort();
-        //println!("{:?}",permutation.apply_slice(&(input.jobs))); //this gives us the original input
+        let compare_desc = |a: &u32, b: &u32| b.cmp(a);
+        let permutation = permutation::sort_by(&(input.jobs), compare_desc);
+        input.jobs.sort_by(compare_desc);
+        //println!("{:?}", permutation.apply_slice(&(input.jobs))); //this gives us the original input
         SortedInput { input, permutation }
     }
 }
