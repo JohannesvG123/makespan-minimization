@@ -6,12 +6,12 @@ use permutation::Permutation;
 
 #[derive(Debug)]
 struct Input {
-    machine_count: i32,
-    jobs: Vec<i32>,
+    machine_count: u32,
+    jobs: Vec<u32>,
 }
 
 impl Input {
-    fn new(machine_count: i32, jobs: Vec<i32>) -> Self { //TODO müssen hier checks eingebaut werden wie zb. m==jobs.length?
+    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO müssen hier checks eingebaut werden wie zb. m==jobs.length?
         Input { machine_count, jobs }
     }
 }
@@ -25,7 +25,7 @@ pub struct SortedInput {
 
 impl SortedInput {
     //TODO eig kann diese kapselung mit sorted input und input weg oder? + getter/setter usw hinzufügen
-    pub fn new(machine_count: i32, jobs: Vec<i32>) -> Self {
+    pub fn new(machine_count: u32, jobs: Vec<u32>) -> Self {
         let mut input = Input::new(machine_count, jobs);
         let permutation = permutation::sort(&(input.jobs));
         input.jobs.sort();
@@ -46,12 +46,12 @@ pub fn parse_input(path_buf: PathBuf) -> Result<SortedInput, Error> { //TODO sch
     let mut split = data.split_whitespace();
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();
-    let job_count = split.next().unwrap().to_string().parse::<i32>().unwrap();
-    let machine_count = split.next().unwrap().to_string().parse::<i32>().unwrap();
-    let mut jobs: Vec<i32> = Vec::new();
-    split.by_ref().for_each(|j| jobs.push(j.parse::<i32>().unwrap()));
+    let job_count = split.next().unwrap().to_string().parse::<u32>().unwrap();
+    let machine_count = split.next().unwrap().to_string().parse::<u32>().unwrap();
+    let mut jobs: Vec<u32> = Vec::new();
+    split.by_ref().for_each(|j| jobs.push(j.parse::<u32>().unwrap()));
     //checks:
-    if p == "p" && p_cmax == "p_cmax" && *(jobs.last().unwrap()) == 0 && job_count + 1 == jobs.len() as i32 {
+    if p == "p" && p_cmax == "p_cmax" && *(jobs.last().unwrap()) == 0 && job_count + 1 == jobs.len() as u32 {
         jobs.pop();
         Ok(SortedInput::new(machine_count, jobs))
     } else {

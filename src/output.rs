@@ -4,12 +4,12 @@ use std::io::Write;
 
 #[derive(Debug)]
 pub struct Solution {
-    c_max: i32,
+    c_max: u32,
     schedule: Schedule,
 }
 
 impl Solution {
-    pub fn new(c_max: i32, schedule: Schedule) -> Self {
+    pub fn new(c_max: u32, schedule: Schedule) -> Self {
         Solution { c_max, schedule }
     }
 }
@@ -23,10 +23,10 @@ impl fmt::Display for Solution {
 
 #[derive(Debug)]
 ///(machine_number_job1,start_time_job1),...
-pub struct Schedule(Vec<(i32, i32)>);
+pub struct Schedule(Vec<(u32, u32)>);
 
 impl Schedule {
-    pub fn new(schedule: Vec<(i32, i32)>) -> Self {
+    pub fn new(schedule: Vec<(u32, u32)>) -> Self {
         Schedule(schedule)
     }
 }
