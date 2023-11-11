@@ -39,11 +39,15 @@ impl fmt::Display for Schedule {
     }
 }
 
-pub fn output(solution: Solution, write: bool, write_name: Option<String>) {
+pub fn output(solution: Solution, write: bool, write_name: Option<String>, input_file_name: &str) {
     if write {
-        let write_name = write_name.unwrap();
-        println!("writing output in \"{}\" ...", format!("data/{}.txt", write_name));
-        let mut file = File::create(format!("data/{}.txt", write_name)).unwrap();
+        let write_name = match write_name {
+            None => format!("{}_solution", input_file_name),
+            Some(str) => str
+        };
+        let path = format!("data/{}.txt", write_name);
+        println!("writing output in \"{}\" ...", path);
+        let mut file = File::create(path).unwrap();
         file.write_all(solution.to_string().as_bytes()).unwrap();
     } else {
         println!("{}", solution);
