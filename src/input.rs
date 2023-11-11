@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use permutation::Permutation;
 
 #[derive(Debug)]
-struct Input {
+pub struct Input {
     machine_count: u32,
     jobs: Vec<u32>,
 }
@@ -13,6 +13,14 @@ struct Input {
 impl Input {
     fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO müssen hier checks eingebaut werden wie zb. m==jobs.length?
         Input { machine_count, jobs }
+    }
+
+    pub fn get_machine_count(&self) -> &u32 {
+        &self.machine_count
+    }
+
+    pub fn get_jobs(&self) -> &Vec<u32> {
+        &self.jobs
     }
 }
 
@@ -31,9 +39,21 @@ impl SortedInput {
         //println!("{:?}", permutation.apply_slice(&(input.jobs))); //this gives us the original input
         SortedInput { input, permutation }
     }
+
+    pub fn get_input(&self) -> &Input {
+        &self.input
+    }
+
+    pub fn get_permutation(&self) -> &Permutation {
+        &self.permutation
+    }
+
+    pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO FRAGE: in wiefern macht es einen unterschied ob ich hier mit oder ohne & arbeote?
+        self.permutation.apply_slice(vec)
+    }
 }
 
-pub fn parse_input(path_buf: PathBuf) -> Result<SortedInput, Error> {
+pub fn parse_input(path_buf: &PathBuf) -> Result<SortedInput, Error> {
     println!("reading input...");
     let data = match fs::read_to_string(path_buf) {
         Ok(str) => str,

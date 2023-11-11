@@ -4,10 +4,12 @@ use std::path::PathBuf;
 use clap::{arg, Parser, ValueEnum};
 
 use crate::input::parse_input;
-use crate::output::{output, Schedule, Solution};
+use crate::list_schedulers::lpt;
+use crate::output::output;
 
 mod input;
 mod output;
+mod list_schedulers;
 
 /// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
@@ -42,7 +44,7 @@ enum Algorithm {
 fn main() {
     let args = Args::parse();
     println!("{:?}", args); //---nur zum debuggen---
-    let input = match parse_input(args.path) {
+    let input = match parse_input(&args.path) {
         Ok(input) => input,
         Err(e) => {
             println!("ERROR: {}", e.to_string());
@@ -50,8 +52,6 @@ fn main() {
         }
     };
     println!("{:?}", input); //---nur zum debuggen---
-    //algo starten und logging nicht vergessen bidde dange...
-    let s = Solution::new(51, Schedule::new(vec![(3, 0), (2, 44), (1, 0)]));
-
-    output(s, args.write, args.write_name);
+    let solution = lpt(&input);   //TODO algo auswahl durch cmd arg
+    output(solution, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
 }
