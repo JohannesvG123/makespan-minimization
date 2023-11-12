@@ -39,7 +39,7 @@ impl fmt::Display for Schedule {
     }
 }
 
-pub fn output(solution: Solution, write: bool, write_name: Option<String>, input_file_name: &str) {
+pub fn output(solution: Solution, write: bool, write_name: Option<String>, input_file_name: &str) { //TODO add which algo has been used
     if write {
         let write_name = match write_name {
             None => format!("{}_solution", input_file_name),

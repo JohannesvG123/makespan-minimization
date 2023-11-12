@@ -2,10 +2,11 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 use clap::{arg, Parser, ValueEnum};
+use enum_map::{Enum, enum_map};
 
 use crate::input::parse_input;
 use crate::list_schedulers::lpt;
-use crate::output::output;
+use crate::output::{output, Solution};
 
 mod input;
 mod output;
@@ -33,17 +34,24 @@ struct Args {
 
 }
 
-#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
 enum Algorithm {
     //TODO algos einfügen und iwi auf die jeweilige fn mappen
-    Algo1,
-    Algo2,
-    Algo3,
+    /// LPT (Longest Processing Time)
+    Lpt,
+    AlgoXyz,
 }
 
 fn main() {
+    ////////////testbereich
+    let algorithm_map =
+        enum_map! {
+        Algorithm::Lpt => |input| lpt(input),
+        Algorithm::AlgoXyz=> |input| lpt(input)
+    };
+    ////////////testbereich
     let args = Args::parse();
-    println!("{:?}", args); //---nur zum debuggen---
+    //println!("{:?}", args); //---nur zum debuggen---
     let input = match parse_input(&args.path) {
         Ok(input) => input,
         Err(e) => {
@@ -51,7 +59,13 @@ fn main() {
             return;
         }
     };
-    println!("{:?}", input); //---nur zum debuggen---
+    //println!("{:?}", input); //---nur zum debuggen---
+    let mut solutions: Vec<Solution> = vec![];
+    args.algos.iter().for_each(|algo| {
+        println!("{:?} stre algo xyz...", algo);
+        solutions.push(algorithm_map[algo.clone()](&input))
+    });
+    println!("{:?}", solutions);
     let solution = lpt(&input);   //TODO algo auswahl durch cmd arg
     output(solution, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
 }
