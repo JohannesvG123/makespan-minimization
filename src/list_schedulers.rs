@@ -1,10 +1,11 @@
+use rand::{random, Rng};
 use crate::Algorithm::{BF, FF, LPT, RF, RR};
 use crate::input::SortedInput;
 use crate::output::{Schedule, Solution};
 
 /// Schedulers using algorithms from the LS (List Scheduling family) to solve the makespan-minimization problem
 
-/// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)TODO
+/// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)
 pub fn longest_processing_time(input: &SortedInput) -> Solution {
     println!("running LPT algorithm...");
     let machine_count = *input.get_input().get_machine_count() as usize;
@@ -71,8 +72,24 @@ pub fn round_robin(input: &SortedInput) -> Solution { // TODO 1 testen mit versc
     Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RR)
 }
 
-/// Assigns the jobs to random machines TODO
+/// Assigns the jobs to random machines
 pub fn random_fit(input: &SortedInput) -> Solution {
     println!("running RF algorithm...");
-    Solution::new(0, Schedule::new(vec![]), RF)
+    let machine_count = *input.get_input().get_machine_count() as usize;
+    let jobs = input.get_input().get_jobs();
+
+    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
+    let mut machines_workload: Vec<u32> = vec![0; machine_count];
+    let mut rng = rand::thread_rng();
+
+
+    for i in 0..jobs.len() {
+        let random_index = rng.gen_range(0..machine_count);
+        schedule.push((random_index as u32, machines_workload[random_index]));
+        machines_workload[random_index] += jobs[i];
+    }
+
+    let c_max: u32 = *machines_workload.iter().max().unwrap();
+
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RF)
 }

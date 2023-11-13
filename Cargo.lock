@@ -398,6 +398,7 @@ dependencies = [
  "clap",
  "enum-map",
  "permutation",
+ "rand",
  "tokenizers",
 ]
 
