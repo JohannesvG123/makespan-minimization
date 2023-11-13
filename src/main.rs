@@ -6,7 +6,7 @@ use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map};
 
 use crate::input::parse_input;
-use crate::list_schedulers::{lpt, round_robin};
+use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
 use crate::output::{output, Solution};
 
 mod input;
@@ -37,10 +37,16 @@ struct Args {
 
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, )]
 pub enum Algorithm {
-    /// LPT (Longest Processing Time)
+    /// LPT (Longest Processing Time/Worst Fit)
     Lpt,
+    /// BF (Best Fit)
+    BF,
+    /// FF (First Fit)
+    FF,
     /// RR (Round Robin)
     RR,
+    /// RF (Random Fit)
+    RF,
 }
 
 impl fmt::Display for Algorithm {
@@ -51,15 +57,17 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map =
-        enum_map! {
-        Algorithm::Lpt => |input| lpt(input),
-        Algorithm::RR=> |input| round_robin(input)
+    let algorithm_map = enum_map! {
+            Algorithm::Lpt => |input| longest_processing_time(input),
+            Algorithm::BF=> |input| best_fit(input),
+            Algorithm::FF=> |input| first_fit(input),
+            Algorithm::RR=> |input| round_robin(input),
+            Algorithm::RF=> |input| random_fit(input),
     };
 
     //start:
     let args = Args::parse();
-    //println!("{:?}", args); //---nur zum debuggen---
+
     let input = match parse_input(&args.path) {
         Ok(input) => input,
         Err(e) => {
@@ -67,11 +75,11 @@ fn main() {
             return;
         }
     };
-    //println!("{:?}", input); //---nur zum debuggen---
+
     let mut solutions: Vec<(Solution, &Algorithm)> = vec![];
     args.algos.iter().for_each(|algo| {
         solutions.push((algorithm_map[algo.clone()](&input), algo))
     });
-    //println!("{:?}", solutions); //---nur zum debuggen---
+
     output(solutions, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
 }
