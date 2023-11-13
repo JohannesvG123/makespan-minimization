@@ -1,10 +1,13 @@
+use crate::Algorithm::{Lpt, RR};
 use crate::input::SortedInput;
 use crate::output::{Schedule, Solution};
 
 /// Schedulers using algorithms from the LS (List Scheduling family) to solve the makespan-minimization problem
 
-/// Assigns the biggest job to the least loaded machine until all jobs are assigned
-pub fn lpt(input: &SortedInput) -> Solution { // TODO 1 testen mit verschiedenen inputs
+
+/// RR (Round Robin) job assignment
+pub fn round_robin(input: &SortedInput) -> Solution { // TODO 1 testen mit verschiedenen inputs
+    println!("running RR algorithm...");
     let machine_count = *input.get_input().get_machine_count() as usize;
     let jobs = input.get_input().get_jobs();
 
@@ -19,5 +22,17 @@ pub fn lpt(input: &SortedInput) -> Solution { // TODO 1 testen mit verschiedenen
 
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)))
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RR)
+}
+
+
+/// Assigns the biggest job to the least loaded machine until all jobs are assigned
+pub fn lpt(input: &SortedInput) -> Solution { // TODO algo implementieren
+    println!("running LPT algorithm...");
+    /*let machine_count = *input.get_input().get_machine_count() as usize;
+    let jobs = input.get_input().get_jobs();
+
+    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());*/
+
+    Solution::new(0, Schedule::new(vec![]), Lpt)
 }

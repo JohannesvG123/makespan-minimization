@@ -1,3 +1,4 @@
+use std::fmt;
 use std::hash::Hash;
 use std::path::PathBuf;
 
@@ -5,7 +6,7 @@ use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map};
 
 use crate::input::parse_input;
-use crate::list_schedulers::lpt;
+use crate::list_schedulers::{lpt, round_robin};
 use crate::output::{output, Solution};
 
 mod input;
@@ -34,22 +35,29 @@ struct Args {
 
 }
 
-#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
-enum Algorithm {
-    //TODO algos einfügen und iwi auf die jeweilige fn mappen
+#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, )]
+pub enum Algorithm {
     /// LPT (Longest Processing Time)
     Lpt,
-    AlgoXyz,
+    /// RR (Round Robin)
+    RR,
+}
+
+impl fmt::Display for Algorithm {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "algorithm {:?}:", self)
+    }
 }
 
 fn main() {
-    ////////////testbereich
+    //new algorithms can be added here:
     let algorithm_map =
         enum_map! {
         Algorithm::Lpt => |input| lpt(input),
-        Algorithm::AlgoXyz=> |input| lpt(input)
+        Algorithm::RR=> |input| round_robin(input)
     };
-    ////////////testbereich
+
+    //start:
     let args = Args::parse();
     //println!("{:?}", args); //---nur zum debuggen---
     let input = match parse_input(&args.path) {
@@ -60,12 +68,10 @@ fn main() {
         }
     };
     //println!("{:?}", input); //---nur zum debuggen---
-    let mut solutions: Vec<Solution> = vec![];
+    let mut solutions: Vec<(Solution, &Algorithm)> = vec![];
     args.algos.iter().for_each(|algo| {
-        println!("{:?} stre algo xyz...", algo);
-        solutions.push(algorithm_map[algo.clone()](&input))
+        solutions.push((algorithm_map[algo.clone()](&input), algo))
     });
-    println!("{:?}", solutions);
-    let solution = lpt(&input);   //TODO algo auswahl durch cmd arg
-    output(solution, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
+    //println!("{:?}", solutions); //---nur zum debuggen---
+    output(solutions, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
 }

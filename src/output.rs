@@ -2,21 +2,24 @@ use std::fmt;
 use std::fs::File;
 use std::io::Write;
 
+use crate::Algorithm;
+
 #[derive(Debug)]
 pub struct Solution {
     c_max: u32,
     schedule: Schedule,
+    algorithm: Algorithm,
 }
 
 impl Solution {
-    pub fn new(c_max: u32, schedule: Schedule) -> Self {
-        Solution { c_max, schedule }
+    pub fn new(c_max: u32, schedule: Schedule, algorithm: Algorithm) -> Self {
+        Solution { c_max, schedule, algorithm }
     }
 }
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SCHEDULING_SOLUTION {0} {1}0", self.c_max, self.schedule)
+        write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0", self.c_max, self.schedule, self.algorithm)
     }
 }
 
@@ -39,17 +42,19 @@ impl fmt::Display for Schedule {
     }
 }
 
-pub fn output(solution: Solution, write: bool, write_name: Option<String>, input_file_name: &str) { //TODO add which algo has been used
+pub fn output(solutions: Vec<(Solution, &Algorithm)>, write: bool, write_name: Option<String>, input_file_name: &str) {
     if write {
-        let write_name = match write_name {
-            None => format!("{}_solution", input_file_name),
-            Some(str) => str
-        };
-        let path = format!("data/{}.txt", write_name);
-        println!("writing output in \"{}\" ...", path);
-        let mut file = File::create(path).unwrap();
-        file.write_all(solution.to_string().as_bytes()).unwrap();
+        solutions.iter().for_each(|(solution, algorithm)| {
+            let write_name = match &write_name {
+                None => format!("{0}_{1:?}_solution", input_file_name, *algorithm),
+                Some(str) => str.to_string()
+            };
+            let path = format!("data/{}.txt", write_name);
+            println!("writing output in \"{}\" ...", path);
+            let mut file = File::create(path).unwrap();
+            file.write_all(solution.to_string().as_bytes()).unwrap();
+        });
     } else {
-        println!("{}", solution);
+        solutions.iter().for_each(|(solution, algorithm)| println!("{}", solution));
     }
 }
