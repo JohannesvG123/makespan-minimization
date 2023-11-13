@@ -55,6 +55,6 @@ pub fn output(solutions: Vec<(Solution, &Algorithm)>, write: bool, write_name: O
             file.write_all(solution.to_string().as_bytes()).unwrap();
         });
     } else {
-        solutions.iter().for_each(|(solution, algorithm)| println!("{}", solution));
+        solutions.iter().for_each(|(solution, _)| println!("{}", solution));
     }
 }

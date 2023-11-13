@@ -44,10 +44,6 @@ impl SortedInput {
         &self.input
     }
 
-    pub fn get_permutation(&self) -> &Permutation {
-        &self.permutation
-    }
-
     pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO FRAGE: in wiefern macht es einen unterschied ob ich hier mit oder ohne & arbeote?
         self.permutation.apply_slice(vec)
     }

@@ -1,4 +1,5 @@
-use rand::{random, Rng};
+use rand::Rng;
+
 use crate::Algorithm::{BF, FF, LPT, RF, RR};
 use crate::input::SortedInput;
 use crate::output::{Schedule, Solution};
@@ -46,10 +47,33 @@ pub fn best_fit(input: &SortedInput) -> Solution {
     Solution::new(0, Schedule::new(vec![]), BF)
 }
 
-/// Assigns the biggest job to the machine with the smallest index until all jobs are assigned TODO
+/// Assigns the biggest job to the machine with the smallest index until all jobs are assigned
 pub fn first_fit(input: &SortedInput) -> Solution {
     println!("running FF algorithm...");
-    Solution::new(0, Schedule::new(vec![]), FF)
+    let machine_count = *input.get_input().get_machine_count() as usize;
+    let jobs = input.get_input().get_jobs();
+
+    //TODO upper bound als parameter(?) -> hier erstmal ein trivialer
+    let upper_bound: u32 = 80;//TODO formel raussuchen
+    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
+    let mut machines_workload: Vec<u32> = vec![0; machine_count];
+    let mut current_machine: usize = 0;
+
+    for i in 0..jobs.len() {
+        if machines_workload[current_machine] + jobs[i] > upper_bound {
+            current_machine += 1;
+            if current_machine == machine_count {
+                println!("ERROR: upper bound is to low");
+                return Solution::new(0, Schedule::new(vec![]), FF); //TODO das ist noch unschön
+            }
+        }
+        schedule.push((current_machine as u32, machines_workload[current_machine]));
+        machines_workload[current_machine] += jobs[i];
+    }
+
+    let c_max: u32 = *machines_workload.iter().max().unwrap();
+
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), FF)
 }
 
 /// Round Robin job assignment
