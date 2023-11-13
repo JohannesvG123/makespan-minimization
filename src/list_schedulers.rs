@@ -1,4 +1,4 @@
-use crate::Algorithm::{BF, FF, Lpt, RF, RR};
+use crate::Algorithm::{BF, FF, LPT, RF, RR};
 use crate::input::SortedInput;
 use crate::output::{Schedule, Solution};
 
@@ -36,7 +36,7 @@ pub fn longest_processing_time(input: &SortedInput) -> Solution {
 
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), Lpt)
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), LPT)
 }
 
 /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned TODO

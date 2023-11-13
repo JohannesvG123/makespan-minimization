@@ -38,7 +38,7 @@ struct Args {
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, )]
 pub enum Algorithm {
     /// LPT (Longest Processing Time/Worst Fit)
-    Lpt,
+    LPT,
     /// BF (Best Fit)
     BF,
     /// FF (First Fit)
@@ -58,7 +58,7 @@ impl fmt::Display for Algorithm {
 fn main() {
     //new algorithms can be added here:
     let algorithm_map = enum_map! {
-            Algorithm::Lpt => |input| longest_processing_time(input),
+            Algorithm::LPT => |input| longest_processing_time(input),
             Algorithm::BF=> |input| best_fit(input),
             Algorithm::FF=> |input| first_fit(input),
             Algorithm::RR=> |input| round_robin(input),
