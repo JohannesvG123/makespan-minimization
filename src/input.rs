@@ -11,7 +11,7 @@ pub struct Input {
 }
 
 impl Input {
-    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO müssen hier checks eingebaut werden wie zb. m==jobs.length?
+    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO FRAGE müssen hier checks eingebaut werden wie zb. m==jobs.length?
         Input { machine_count, jobs }
     }
 
@@ -56,6 +56,7 @@ pub fn parse_input(path_buf: &PathBuf) -> Result<SortedInput, Error> {
         Err(e) => return Err(e),
     };
 
+    //TODO FRAGE soll ich das so lassen oder noch auf Tokenized umstellen?
     //TODO daten tokenized einlesen aber des war mir jetzt zu blöd - desshalb jz erstmal so low^^
     println!("parsing input...");
     let mut split = data.split_whitespace();

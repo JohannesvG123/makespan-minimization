@@ -41,13 +41,13 @@ pub fn longest_processing_time(input: &SortedInput) -> Solution {
     Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), LPT)
 }
 
-/// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned TODO hier recht ineffektiv... sollte man das noch verbessern? zb mit PQ oder so
+/// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned TODO FRAGE hier recht ineffektiv... sollte man das noch verbessern? zb mit PQ oder so
 pub fn best_fit(input: &SortedInput) -> Solution {
     println!("running BF algorithm...");
     let machine_count = *input.get_input().get_machine_count() as usize;
     let jobs = input.get_input().get_jobs();
 
-    //TODO upper bound als parameter(?) + datentyp überlegen wegen kommazahl -> hier erstmal ein trivialer
+    //TODO FRAGE upper bound als parameter(?) -> hier erstmal ein trivialer
     let upper_bound: u32 = jobs.iter().sum::<u32>() / machine_count as u32 + jobs.iter().max().unwrap();
     let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
     let mut machines_workload: Vec<u32> = vec![0; machine_count];
@@ -65,7 +65,7 @@ pub fn best_fit(input: &SortedInput) -> Solution {
             }
         }
         if best_machine == machine_count {
-            println!("ERROR: upper bound is to low");//TODO das ist noch unschön
+            println!("ERROR: upper bound is to low");//TODO das ist noch unschön => Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
             return Solution::new(0, Schedule::new(vec![]), BF);
         }
         schedule.push((best_machine as u32, machines_workload[best_machine]));
@@ -94,7 +94,7 @@ pub fn first_fit(input: &SortedInput) -> Solution {
             current_machine += 1;
             if current_machine == machine_count {
                 println!("ERROR: upper bound is to low");
-                return Solution::new(0, Schedule::new(vec![]), FF); //TODO das ist noch unschön
+                return Solution::new(0, Schedule::new(vec![]), FF); //TODO das ist noch unschön => Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
             }
         }
         schedule.push((current_machine as u32, machines_workload[current_machine]));
@@ -107,7 +107,7 @@ pub fn first_fit(input: &SortedInput) -> Solution {
 }
 
 /// Round Robin job assignment
-pub fn round_robin(input: &SortedInput) -> Solution { // TODO 1 testen mit verschiedenen inputs
+pub fn round_robin(input: &SortedInput) -> Solution {
     println!("running RR algorithm...");
     let machine_count = *input.get_input().get_machine_count() as usize;
     let jobs = input.get_input().get_jobs();
@@ -115,7 +115,7 @@ pub fn round_robin(input: &SortedInput) -> Solution { // TODO 1 testen mit versc
     let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
     let mut machines_workload: Vec<u32> = vec![0; machine_count];
 
-    for j in 0..jobs.len() { //TODO man kann sich machines_workload sparen aber dann wirds unverständlicher... trotzdem machen?
+    for j in 0..jobs.len() { //TODO FRAGE man kann sich machines_workload sparen aber dann wirds unverständlicher... trotzdem machen?
         let machine = j.rem_euclid(machine_count);
         schedule.push((machine as u32, machines_workload[machine]));
         machines_workload[machine] += jobs[j];
