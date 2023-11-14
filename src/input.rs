@@ -36,7 +36,7 @@ impl SortedInput {
         let compare_desc = |a: &u32, b: &u32| b.cmp(a);
         let permutation = permutation::sort_by(&(input.jobs), compare_desc);
         input.jobs.sort_by(compare_desc);
-        //println!("{:?}", permutation.apply_slice(&(input.jobs))); //this gives us the original input
+        //println!("{:?}", permutation.apply_inv_slice(&(input.jobs))); //this gives us the original input
         SortedInput { input, permutation }
     }
 
@@ -45,7 +45,7 @@ impl SortedInput {
     }
 
     pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO FRAGE: in wiefern macht es einen unterschied ob ich hier mit oder ohne & arbeote?
-        self.permutation.apply_slice(vec)
+        self.permutation.apply_inv_slice(vec)
     }
 }
 
