@@ -15,7 +15,7 @@ n = int(instancelines[0][2])
 m = int(instancelines[0][3])
 # job sizes line
 jobsizes = [int(x) for x in instancelines[1][0:-1]]
-#print(f"Parsed instance {instancefile}: n={n} m={m} sizes={jobsizes}")
+print(f"Parsed instance {instancefile}: n={n} m={m} sizes={jobsizes}")
 assert(len(jobsizes) == n) # broken instance file - number of job sizes does not match n ...
 
 # Parse output file
@@ -30,7 +30,7 @@ for line in open(outputfile, 'r').readlines():
     solution = [int(x) for x in words[2:-1]]
     machines = [solution[i] for i in range(0, len(solution), 2)]
     starttimes = [solution[i] for i in range(1, len(solution), 2)]
-    #print(f"Found solution: Cmax={cmax} machines={machines} starttimes={starttimes}")
+    print(f"Found solution: Cmax={cmax} machines={machines} starttimes={starttimes}")
     break
 
 # Check schedule
@@ -53,8 +53,6 @@ assert(any_machine_busy_before_cmax) # all machines are done by Cmax-1, so Cmax 
 
 # Print schedule
 print(f"Schedule '{outputfile}' validated: (correct, but not necessarily optimal).")
-#with open(f"validation_results{instancefile}.txt", "w") as text_file: #damit kann man evtl in file schreiben
-#    print(f"result for {outputfile}: correct, but not necessarily optimal", file=text_file)
-#print("t", [x for x in range(cmax+1)]) #damit wird der schedule ausgegeben (ACHTUNG nimmt viel Platz ein!!!)
-#for i in range(len(schedule)):
-#    print(str(i+1), schedule[i])
+print("t", [x for x in range(cmax+1)]) #damit wird der schedule ausgegeben (ACHTUNG nimmt viel Platz ein!!!)
+for i in range(len(schedule)):
+    print(str(i+1), schedule[i])
