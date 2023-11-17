@@ -60,9 +60,9 @@ fn main() {
     let algorithm_map = enum_map! {
             Algorithm::LPT => |input| longest_processing_time(input),
             Algorithm::BF=> |input| best_fit(input),
-            Algorithm::FF=> |input| first_fit(input),
+            Algorithm::FF=> |input| first_fit(input,None),
             Algorithm::RR=> |input| round_robin(input),
-            Algorithm::RF=> |input| random_fit(input),
+            Algorithm::RF=> |input| random_fit(input,None),
     };
 
     //start:

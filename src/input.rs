@@ -11,7 +11,7 @@ pub struct Input {
 }
 
 impl Input {
-    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO FRAGE müssen hier checks eingebaut werden wie zb. m==jobs.length?
+    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO assertions einbauen debugassert
         Input { machine_count, jobs }
     }
 
@@ -44,7 +44,7 @@ impl SortedInput {
         &self.input
     }
 
-    pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO FRAGE: in wiefern macht es einen unterschied ob ich hier mit oder ohne & arbeote?
+    pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO statt &vec idr slices verwenden (umstellen)
         self.permutation.apply_inv_slice(vec)
     }
 }
@@ -56,8 +56,7 @@ pub fn parse_input(path_buf: &PathBuf) -> Result<SortedInput, Error> {
         Err(e) => return Err(e),
     };
 
-    //TODO FRAGE soll ich das so lassen oder noch auf Tokenized umstellen?
-    //TODO daten tokenized einlesen aber des war mir jetzt zu blöd - desshalb jz erstmal so low^^
+    //TODO auf Tokenized umstellen... (-low prio-)
     println!("parsing input...");
     let mut split = data.split_whitespace();
     let p = split.next().unwrap().to_string();
@@ -71,6 +70,6 @@ pub fn parse_input(path_buf: &PathBuf) -> Result<SortedInput, Error> {
         jobs.pop();
         Ok(SortedInput::new(machine_count, jobs))
     } else {
-        Err(Error::new(ErrorKind::InvalidInput, "invalid input!"))//todo aussagekräftiger machen (aber erst wenns tokenized is^^)
+        Err(Error::new(ErrorKind::InvalidInput, "invalid input! => check the input file"))//wenns tokenized ist: evtl aussagekräftiger machen und sagen was falsch war
     }
 }
