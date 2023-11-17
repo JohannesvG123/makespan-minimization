@@ -8,20 +8,14 @@ use crate::output::{Schedule, Solution};
 /// Schedulers using algorithms from the LS (List Scheduling family) to solve the makespan-minimization problem
 
 /// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)
-pub fn longest_processing_time(input: &SortedInput) -> Solution {
-    println!("running LPT algorithm...");
-    let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs();
-
-    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
-    let mut machines_workload: Vec<u32> = vec![0; machine_count];
+pub fn longest_processing_time(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
+    let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, LPT);
     let mut current_machine: usize = 0;
     let mut foreward: bool = true; // used to fill the machines in this order: (m=3) 0-1-2-2-1-0-0-1-2...
     let mut pause: bool = false;
 
     for &job in jobs.iter() {
-        schedule.push((current_machine as u32, machines_workload[current_machine]));
-        machines_workload[current_machine] += job;
+        assign_job(&mut schedule, &mut machines_workload, job, current_machine);
         if foreward {
             if pause { pause = false; } else { current_machine += 1; }
             if current_machine == machine_count - 1 {
@@ -37,22 +31,12 @@ pub fn longest_processing_time(input: &SortedInput) -> Solution {
         }
     }
 
-    let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), LPT)
+    end(input, &schedule, &mut machines_workload, LPT)
 }
 
 /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned
-pub fn best_fit(input: &SortedInput) -> Solution {
-    println!("running BF algorithm...");
-    let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs();
-
-    //TODO upper bound als parameter(?) -> hier erstmal ein trivialer
-    let upper_bound: u32 = jobs.iter().sum::<u32>() / machine_count as u32 + jobs.iter().max().unwrap();
-    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
-    let mut machines_workload: Vec<u32> = vec![0; machine_count];
-
+pub fn best_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
+    let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, BF);
 
     for &job in jobs.iter() {
         let mut best_machine = machine_count;
@@ -69,27 +53,15 @@ pub fn best_fit(input: &SortedInput) -> Solution {
             println!("ERROR: upper bound is to low");//TODO Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
             return Solution::new(0, Schedule::new(vec![]), BF);
         }
-        schedule.push((best_machine as u32, machines_workload[best_machine]));
-        machines_workload[best_machine] += job;
+        assign_job(&mut schedule, &mut machines_workload, job, best_machine);
     }
 
-    let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), BF)
+    end(input, &schedule, &mut machines_workload, BF)
 }
 
 /// Assigns the biggest job to the machine with the smallest index until all jobs are assigned
 pub fn first_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
-    println!("running FF algorithm...");
-    let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs();
-
-    let upper_bound: u32 = match upper_bound {
-        None => jobs.iter().sum::<u32>() / machine_count as u32 + jobs.iter().max().unwrap(), //trvial upper bound
-        Some(val) => val
-    };
-    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
-    let mut machines_workload: Vec<u32> = vec![0; machine_count];
+    let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, FF);
     let mut current_machine: usize = 0;
 
     for &job in jobs.iter() {
@@ -100,33 +72,24 @@ pub fn first_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
                 return Solution::new(0, Schedule::new(vec![]), FF); //TODO Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
             }
         }
-        schedule.push((current_machine as u32, machines_workload[current_machine]));
-        machines_workload[current_machine] += job;
+        assign_job(&mut schedule, &mut machines_workload, job, current_machine);
     }
 
-    let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), FF)
+    end(input, &schedule, &mut machines_workload, FF)
 }
 
 /// Round Robin job assignment
-pub fn round_robin(input: &SortedInput) -> Solution {
-    println!("running RR algorithm...");
-    let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs();
-
-    let mut schedule: Vec<(u32, u32)> = Vec::with_capacity(jobs.len());
-    let mut machines_workload: Vec<u32> = vec![0; machine_count];
+pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
+    let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, RR);
 
     for j in 0..jobs.len() {
         let machine = j.rem_euclid(machine_count);
-        schedule.push((machine as u32, machines_workload[machine]));
-        machines_workload[machine] += jobs[j];
+        assign_job(&mut schedule, &mut machines_workload, jobs[j], machine);
     }
 
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RR)
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(&schedule)), RR)
 }
 
 /// Assigns the jobs to random machines
@@ -139,9 +102,7 @@ pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
         assign_job(&mut schedule, &mut machines_workload, job, random_index);
     }
 
-    let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RF)
+    end(input, &schedule, &mut machines_workload, RF)
 }
 
 fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> (usize, &Vec<u32>, u32, Vec<(u32, u32)>, Vec<u32>) {
@@ -163,4 +124,11 @@ fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> 
 fn assign_job(schedule: &mut Vec<(u32, u32)>, mut machines_workload: &mut Vec<u32>, job: u32, index: usize) {
     schedule.push((index as u32, machines_workload[index]));
     machines_workload[index] += job;
+}
+
+
+fn end(input: &SortedInput, mut schedule: &Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, algorithm: Algorithm) -> Solution {
+    let c_max: u32 = *machines_workload.iter().max().unwrap();
+
+    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), algorithm)
 }

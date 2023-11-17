@@ -58,10 +58,10 @@ impl fmt::Display for Algorithm {
 fn main() {
     //new algorithms can be added here:
     let algorithm_map = enum_map! {
-            Algorithm::LPT => |input| longest_processing_time(input),
-            Algorithm::BF=> |input| best_fit(input),
+            Algorithm::LPT => |input| longest_processing_time(input,None),
+            Algorithm::BF=> |input| best_fit(input,None),
             Algorithm::FF=> |input| first_fit(input,None),
-            Algorithm::RR=> |input| round_robin(input),
+            Algorithm::RR=> |input| round_robin(input,None),
             Algorithm::RF=> |input| random_fit(input,None),
     };
 

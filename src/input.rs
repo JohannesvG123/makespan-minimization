@@ -44,7 +44,7 @@ impl SortedInput {
         &self.input
     }
 
-    pub fn unsort_schedule<T: Clone>(&self, vec: Vec<T>) -> Vec<T> { //TODO statt &vec idr slices verwenden (umstellen)
+    pub fn unsort_schedule<T: Clone>(&self, vec: &Vec<T>) -> Vec<T> { //TODO statt &vec idr slices verwenden (umstellen)
         self.permutation.apply_inv_slice(vec)
     }
 }
