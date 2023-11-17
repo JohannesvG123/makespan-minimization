@@ -35,7 +35,7 @@ struct Args {
 
 }
 
-#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, )]
+#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
 pub enum Algorithm {
     /// LPT (Longest Processing Time/Worst Fit)
     LPT,

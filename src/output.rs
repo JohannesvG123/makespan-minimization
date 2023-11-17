@@ -6,20 +6,39 @@ use crate::Algorithm;
 
 #[derive(Debug)]
 pub struct Solution {
-    c_max: u32,
-    schedule: Schedule,
-    algorithm: Algorithm,
+    satisfiable: bool,
+    c_max: Option<u32>,
+    schedule: Option<Schedule>,
+    algorithm: Option<Algorithm>,
 }
 
 impl Solution {
     pub fn new(c_max: u32, schedule: Schedule, algorithm: Algorithm) -> Self {
-        Solution { c_max, schedule, algorithm }
+        Solution {
+            satisfiable: true,
+            c_max: Some(c_max),
+            schedule: Some(schedule),
+            algorithm: Some(algorithm),
+        }
+    }
+
+    pub fn unsatisfiable(algorithm: Algorithm) -> Self {
+        Solution {
+            satisfiable: false,
+            c_max: None,
+            schedule: None,
+            algorithm: Some(algorithm),
+        }
     }
 }
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0", self.c_max, self.schedule, self.algorithm)
+        if self.satisfiable {
+            write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0", self.c_max.unwrap(), self.schedule.as_ref().unwrap(), self.algorithm.as_ref().unwrap())
+        } else {
+            write!(f, "{}\nSCHEDULING_SOLUTION UNSATISFIABLE!", self.algorithm.as_ref().unwrap())
+        }
     }
 }
 

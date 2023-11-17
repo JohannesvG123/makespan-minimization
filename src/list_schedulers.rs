@@ -50,8 +50,8 @@ pub fn best_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
             }
         }
         if best_machine == machine_count {
-            println!("ERROR: upper bound is to low");//TODO Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
-            return Solution::new(0, Schedule::new(vec![]), BF);
+            println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF);
+            return Solution::unsatisfiable(BF);
         }
         assign_job(&mut schedule, &mut machines_workload, job, best_machine);
     }
@@ -68,8 +68,8 @@ pub fn first_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
         if machines_workload[current_machine] + job > upper_bound {
             current_machine += 1;
             if current_machine == machine_count {
-                println!("ERROR: upper bound is to low");
-                return Solution::new(0, Schedule::new(vec![]), FF); //TODO Rückgabetyp anpassen, damit auch Error Rückgegeben werden kann oä
+                println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, FF);
+                return Solution::unsatisfiable(FF);
             }
         }
         assign_job(&mut schedule, &mut machines_workload, job, current_machine);
