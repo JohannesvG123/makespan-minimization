@@ -112,7 +112,7 @@ pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
 }
 
 /// Assigns the jobs to random machines
-pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
+pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { //TODO FRAGE hatte mir aufgeschrieben, dass hier kein ub genutzt werden soll... stimmt da?
     let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, RF);
     let mut rng = rand::thread_rng();
     let fails_until_check: usize = machine_count;// Number of fails until a satisfiability check is done //TODO FRAGE passt das so oder anderer wert?
@@ -151,7 +151,7 @@ fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> 
 
     (machine_count,
      jobs,
-     upper_bound,
+     upper_bound, //TODO überlegen ob man ub auch laufendem algo geben kann + atomic shared lb+ub
      Vec::with_capacity(jobs.len()), //schedule
      vec![0; machine_count]) //machines_workload
 }
