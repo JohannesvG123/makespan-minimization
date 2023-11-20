@@ -8,54 +8,28 @@ use crate::output::{Schedule, Solution};
 /// Schedulers using algorithms from the LS (List Scheduling family) to solve the makespan-minimization problem
 
 /// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)
-pub fn longest_processing_time(input: &SortedInput, upper_bound: Option<u32>) -> Solution { //TODO ub korrekt hinzufügen
+pub fn longest_processing_time(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
     let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, LPT);
     let mut current_machine: usize = 0;
     let mut foreward: bool = true; // used to fill the machines in this order: (m=3) 0-1-2-2-1-0-0-1-2...
     let mut pause: bool = false;
 
-    for &job in jobs.iter() { //TODO funzt noch net wenn jbo nicht passt und dann richtungswechsel kommt -> kann man des überhaupt effektiv implementieren?
+    for &job in jobs.iter() {
+        if machines_workload[current_machine] + job > upper_bound { //satisfiability check
+            println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, LPT);
+            return Solution::unsatisfiable(LPT);
+        }
         assign_job(&mut schedule, &mut machines_workload, job, current_machine);
-        if foreward { //foreward
-            if pause { //first machine
-                pause = false;
-            } else { //other machine
-                current_machine += 1;
 
-                /*let mut offset = 0;
-                while machines_workload[(machine + offset).rem_euclid(machine_count)] + jobs[j] > upper_bound {
-                    offset += 1;
-                    if offset == machine_count { //satisfiability check
-                        println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RR);
-                        return Solution::unsatisfiable(RR);
-                    }
-                }*/
-                /*while machines_workload[current_machine] > upper_bound { //upper bound checks //TODO +job
-                    current_machine += 1;
-                    if current_machine == machine_count - 1 {
-                        foreward = false;
-                        current_machine -= 1;
-                    }
-                }*/
-            }
-            if current_machine == machine_count - 1 { //last machine
+        if foreward {
+            if pause { pause = false; } else { current_machine += 1; }
+            if current_machine == machine_count - 1 {
                 foreward = false;
                 pause = true;
             }
-        } else { //backwards
-            if pause { //last machine
-                pause = false
-            } else { //other machine
-                current_machine -= 1;
-                while machines_workload[current_machine] > upper_bound { //upper bound checks
-                    current_machine -= 1;
-                    if current_machine == machine_count - 1 {
-                        foreward = true;
-                        current_machine += 1;
-                    }
-                }
-            }
-            if current_machine == 0 { //first machine
+        } else {
+            if pause { pause = false } else { current_machine -= 1; }
+            if current_machine == 0 {
                 foreward = true;
                 pause = true
             }
@@ -182,14 +156,13 @@ fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> 
      vec![0; machine_count]) //machines_workload
 }
 
-fn assign_job(schedule: &mut Vec<(u32, u32)>, mut machines_workload: &mut Vec<u32>, job: u32, index: usize) {
+fn assign_job(schedule: &mut Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, job: u32, index: usize) {
     schedule.push((index as u32, machines_workload[index]));
     machines_workload[index] += job;
-    println!("{:?}", (index as u32, job));
 }
 
 
-fn end(input: &SortedInput, mut schedule: &Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, algorithm: Algorithm) -> Solution {
+fn end(input: &SortedInput, schedule: &Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, algorithm: Algorithm) -> Solution {
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
     Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), algorithm)
