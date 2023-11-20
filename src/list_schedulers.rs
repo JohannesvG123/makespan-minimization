@@ -19,7 +19,7 @@ pub fn longest_processing_time(input: &SortedInput, upper_bound: Option<u32>) ->
             println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, LPT);
             return Solution::unsatisfiable(LPT);
         }
-        assign_job(&mut schedule, &mut machines_workload, job, current_machine);
+        assign_job(&mut schedule, machines_workload.as_mut_slice(), job, current_machine);
 
         if foreward {
             if pause { pause = false; } else { current_machine += 1; }
@@ -59,7 +59,7 @@ pub fn best_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
             return Solution::unsatisfiable(BF);
         }
 
-        assign_job(&mut schedule, &mut machines_workload, job, best_machine);
+        assign_job(&mut schedule, machines_workload.as_mut_slice(), job, best_machine);
     }
 
     end(input, &schedule, &mut machines_workload, BF)
@@ -80,7 +80,7 @@ pub fn first_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
             }
         }
 
-        assign_job(&mut schedule, &mut machines_workload, job, current_machine);
+        assign_job(&mut schedule, machines_workload.as_mut_slice(), job, current_machine);
     }
 
     end(input, &schedule, &mut machines_workload, FF)
@@ -103,7 +103,7 @@ pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
         }
         machine += offset;
 
-        assign_job(&mut schedule, &mut machines_workload, jobs[j], machine);
+        assign_job(&mut schedule, machines_workload.as_mut_slice(), jobs[j], machine);
     }
 
     let c_max: u32 = *machines_workload.iter().max().unwrap();
@@ -112,7 +112,7 @@ pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
 }
 
 /// Assigns the jobs to random machines
-pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { //TODO FRAGE hatte mir aufgeschrieben, dass hier kein ub genutzt werden soll... stimmt da?
+pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { //TODO FRAGE hatte mir aufgeschrieben, dass hier kein ub genutzt werden soll... stimmt das?
     let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, RF);
     let mut rng = rand::thread_rng();
     let fails_until_check: usize = machine_count;// Number of fails until a satisfiability check is done //TODO FRAGE passt das so oder anderer wert?
@@ -134,16 +134,16 @@ pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { /
             random_index = rng.gen_range(0..machine_count);
         }
 
-        assign_job(&mut schedule, &mut machines_workload, job, random_index);
+        assign_job(&mut schedule, machines_workload.as_mut_slice(), job, random_index);
     }
 
-    end(input, &schedule, &mut machines_workload, RF)
+    end(input, schedule.as_slice(), machines_workload.as_slice(), RF)
 }
 
-fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> (usize, &Vec<u32>, u32, Vec<(u32, u32)>, Vec<u32>) {
+fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> (usize, &[u32], u32, Vec<(u32, u32)>, Vec<u32>) {
     println!("running {:?} algorithm...", algorithm);
     let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs();
+    let jobs = input.get_input().get_jobs().as_slice();
     let upper_bound: u32 = match upper_bound {
         None => jobs.iter().sum::<u32>() / machine_count as u32 + jobs.iter().max().unwrap(), //trvial upper bound
         Some(val) => val
@@ -151,18 +151,18 @@ fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> 
 
     (machine_count,
      jobs,
-     upper_bound, //TODO überlegen ob man ub auch laufendem algo geben kann + atomic shared lb+ub
+     upper_bound, //TODO 1 überlegen ob man ub auch laufendem algo geben kann + atomic shared lb+ub
      Vec::with_capacity(jobs.len()), //schedule
      vec![0; machine_count]) //machines_workload
 }
 
-fn assign_job(schedule: &mut Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, job: u32, index: usize) {
-    schedule.push((index as u32, machines_workload[index]));
+fn assign_job(schedule: &mut Vec<(u32, u32)>, machines_workload: &mut [u32], job: u32, index: usize) {
+    schedule.push((index as u32, machines_workload[index])); //TODO FRAGE slice hier nicht möglich oder
     machines_workload[index] += job;
 }
 
 
-fn end(input: &SortedInput, schedule: &Vec<(u32, u32)>, machines_workload: &mut Vec<u32>, algorithm: Algorithm) -> Solution {
+fn end(input: &SortedInput, schedule: &[(u32, u32)], machines_workload: &[u32], algorithm: Algorithm) -> Solution {
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
     Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), algorithm)

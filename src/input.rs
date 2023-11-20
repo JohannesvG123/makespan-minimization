@@ -11,7 +11,7 @@ pub struct Input {
 }
 
 impl Input {
-    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO assertions einbauen debugassert
+    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO 1.1 assertions einbauen debugassert
         Input { machine_count, jobs }
     }
 
@@ -44,8 +44,8 @@ impl SortedInput {
         &self.input
     }
 
-    pub fn unsort_schedule<T: Clone>(&self, vec: &Vec<T>) -> Vec<T> { //TODO statt &vec idr slices verwenden (umstellen)
-        self.permutation.apply_inv_slice(vec)
+    pub fn unsort_schedule<T: Clone>(&self, schedule: &[T]) -> Vec<T> {
+        self.permutation.apply_inv_slice(schedule)
     }
 }
 
@@ -56,7 +56,7 @@ pub fn parse_input(path_buf: &PathBuf) -> Result<SortedInput, Error> {
         Err(e) => return Err(e),
     };
 
-    //TODO auf Tokenized umstellen... (-low prio-)
+    //TODO (low prio) auf Tokenized umstellen...
     println!("parsing input...");
     let mut split = data.split_whitespace();
     let p = split.next().unwrap().to_string();
