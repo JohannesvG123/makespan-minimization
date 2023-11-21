@@ -11,7 +11,7 @@ pub struct Input {
 }
 
 impl Input {
-    fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO 1.1 assertions einbauen debugassert
+    fn new(machine_count: u32, jobs: Vec<u32>) -> Self {
         Input { machine_count, jobs }
     }
 

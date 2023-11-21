@@ -11,3 +11,4 @@ enum-map = "2.7.1"
 permutation = "0.4.1"
 tokenizers = "0.14.1"
 rand = { version = "0.8.5"}
+rayon = "1.8.0"

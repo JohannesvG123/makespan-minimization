@@ -4,10 +4,11 @@ use std::path::PathBuf;
 
 use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map};
+use rayon::prelude::*;
 
 use crate::input::parse_input;
 use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
-use crate::output::{output, Solution};
+use crate::output::output;
 
 mod input;
 mod output;
@@ -76,10 +77,8 @@ fn main() {
         }
     };
 
-    let mut solutions: Vec<(Solution, &Algorithm)> = vec![];
-    args.algos.iter().for_each(|algo| {
-        solutions.push((algorithm_map[algo.clone()](&input), algo))
+    args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
+        output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
     });
 
-    output(solutions, args.write, args.write_name, args.path.file_stem().unwrap().to_str().unwrap());
 }
