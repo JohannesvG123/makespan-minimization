@@ -15,12 +15,12 @@ impl Input {
         Input { machine_count, jobs }
     }
 
-    pub fn get_machine_count(&self) -> &u32 {
-        &self.machine_count
+    pub fn get_machine_count(&self) -> u32 {
+        self.machine_count
     }
 
-    pub fn get_jobs(&self) -> &Vec<u32> {
-        &self.jobs
+    pub fn get_jobs(&self) -> &[u32] {
+        self.jobs.as_slice()
     }
 }
 

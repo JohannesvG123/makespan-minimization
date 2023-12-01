@@ -1,18 +1,22 @@
 use std::fmt;
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use clap::{arg, Parser, ValueEnum};
-use enum_map::{Enum, enum_map};
+use enum_map::Enum;
+use rand::Rng;
 use rayon::prelude::*;
 
 use crate::input::parse_input;
-use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
-use crate::output::output;
+use crate::list_schedulers::LPTScheduler;
+//use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
+use crate::scheduler::Scheduler;
 
 mod input;
 mod output;
 mod list_schedulers;
+mod scheduler;
 
 /// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
@@ -58,27 +62,29 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map = enum_map! {
+    /*let algorithm_map = enum_map! {
             Algorithm::LPT => |input| longest_processing_time(input,None),
             Algorithm::BF=> |input| best_fit(input,None),
             Algorithm::FF=> |input| first_fit(input,None),
             Algorithm::RR=> |input| round_robin(input,None),
             Algorithm::RF=> |input| random_fit(input,None),
-    };
+    };*/
 
     //start:
     let args = Args::parse();
 
     let input = match parse_input(&args.path) {
-        Ok(input) => input,
+        Ok(input) => Rc::new(input), //TODO das muss man für parallel anscheinend anpassen
         Err(e) => {
             println!("ERROR: {}", e.to_string());
             return;
         }
     };
 
-    args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
-        output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
-    });
+    let mut s: Box<dyn Scheduler> = Box::new(LPTScheduler::new(input, None));
+    println!("{}", s.schedule());
 
+    /*args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
+        output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
+    });*/
 }
