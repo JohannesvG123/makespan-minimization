@@ -106,9 +106,7 @@ pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
         assign_job(&mut schedule, machines_workload.as_mut_slice(), jobs[j], machine);
     }
 
-    let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(&schedule)), RR)
+    end(input, &schedule, &mut machines_workload, RR)
 }
 
 /// Assigns the jobs to random machines
