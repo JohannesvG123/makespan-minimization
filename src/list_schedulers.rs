@@ -136,7 +136,7 @@ pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>, d: bool) -> Sol
         assign_job(&mut schedule, machines_workload.as_mut_slice(), job, random_index);
     }
 
-    //TODO wieder weg machen (hier nur zum testen: "run --package makespan-minimization --bin makespan-minimization -- -p data/m10-n32-U1,100-s1.txt -a rf")
+    //TODO wieder weg machen (hier nur zum testen: "run --package makespan-minimization --bin makespan-minimization -- -p data/m10-n32-U1,100-s1.txt -a rf") + überlegen wann man sorted!
     if d {
         let c_max: u32 = *machines_workload.iter().max().unwrap();
         let s = Solution::new(c_max, Schedule::new(schedule), RF);
