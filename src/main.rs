@@ -13,6 +13,7 @@ use crate::output::output;
 mod input;
 mod output;
 mod list_schedulers;
+mod local_search;
 
 /// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
@@ -63,7 +64,7 @@ fn main() {
             Algorithm::BF=> |input| best_fit(input,None),
             Algorithm::FF=> |input| first_fit(input,None),
             Algorithm::RR=> |input| round_robin(input,None),
-            Algorithm::RF=> |input| random_fit(input,None),
+            Algorithm::RF=> |input| random_fit(input,None,true),
     };
 
     //start:

@@ -30,6 +30,22 @@ impl Solution {
             algorithm: Some(algorithm),
         }
     }
+
+    pub fn is_satisfiable(&self) -> bool {
+        self.satisfiable
+    }
+
+    pub fn get_schedule(&self) -> &[(u32, u32)] {
+        self.schedule.as_ref().unwrap().0.as_slice()
+    }
+
+    pub fn get_algorithm(&self) -> Algorithm {
+        self.algorithm.clone().unwrap()
+    }
+
+    pub fn get_c_max(&self) -> u32 {
+        self.c_max.unwrap()
+    }
 }
 
 impl fmt::Display for Solution {
