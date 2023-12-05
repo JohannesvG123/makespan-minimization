@@ -110,8 +110,13 @@ pub fn round_robin(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
     end(input, &schedule, &mut machines_workload, RR)
 }
 
+pub fn round_robin_ls(input: &SortedInput, upper_bound: Option<u32>) -> Solution {
+    let solution_1 = round_robin(input, upper_bound);
+    rebalance(solution_1, input)
+}
+
 /// Assigns the jobs to random machines
-pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>, d: bool) -> Solution { //TODO FRAGE hatte mir aufgeschrieben, dass hier kein ub genutzt werden soll... stimmt das?
+pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { //TODO FRAGE hatte mir aufgeschrieben, dass hier kein ub genutzt werden soll... stimmt das?
     let (machine_count, jobs, upper_bound, mut schedule, mut machines_workload) = init(input, upper_bound, RF);
     let mut rng = rand::thread_rng();
     let fails_until_check: usize = machine_count;// Number of fails until a satisfiability check is done //TODO FRAGE passt das so oder anderer wert?
@@ -136,15 +141,7 @@ pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>, d: bool) -> Sol
         assign_job(&mut schedule, machines_workload.as_mut_slice(), job, random_index);
     }
 
-    //TODO wieder weg machen (hier nur zum testen: "run --package makespan-minimization --bin makespan-minimization -- -p data/m10-n32-U1,100-s1.txt -a rf") + überlegen wann man sorted!
-    if d {
-        let c_max: u32 = *machines_workload.iter().max().unwrap();
-        let s = Solution::new(c_max, Schedule::new(schedule), RF);
-
-        rebalance(s, input)
-    } else {
-        end(input, &schedule, &mut machines_workload, RF)
-    }
+    end(input, &schedule, &mut machines_workload, RF)
 }
 
 fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> (usize, &[u32], u32, Vec<(u32, u32)>, Vec<u32>) {

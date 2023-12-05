@@ -7,7 +7,7 @@ use enum_map::{Enum, enum_map};
 use rayon::prelude::*;
 
 use crate::input::parse_input;
-use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
+use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin, round_robin_ls};
 use crate::output::output;
 
 mod input;
@@ -49,6 +49,8 @@ pub enum Algorithm {
     RR,
     /// RF (Random Fit)
     RF,
+    /// RR with Local Search afterwards (nur temporär) TODO
+    RRLS,
 }
 
 impl fmt::Display for Algorithm {
@@ -60,11 +62,12 @@ impl fmt::Display for Algorithm {
 fn main() {
     //new algorithms can be added here:
     let algorithm_map = enum_map! {
-            Algorithm::LPT => |input| longest_processing_time(input,None),
-            Algorithm::BF=> |input| best_fit(input,None),
-            Algorithm::FF=> |input| first_fit(input,None),
-            Algorithm::RR=> |input| round_robin(input,None),
-            Algorithm::RF=> |input| random_fit(input,None,true),
+        Algorithm::LPT => |input| longest_processing_time(input,None),
+        Algorithm::BF=> |input| best_fit(input,None),
+        Algorithm::FF=> |input| first_fit(input,None),
+        Algorithm::RR=> |input| round_robin(input,None),
+        Algorithm::RRLS=> |input| round_robin_ls(input,None),
+        Algorithm::RF=> |input| random_fit(input,None),
     };
 
     //start:
@@ -81,5 +84,4 @@ fn main() {
     args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
         output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
     });
-
 }
