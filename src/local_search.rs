@@ -56,13 +56,21 @@ pub fn rebalance(solution_old: Solution, input: &SortedInput) -> Solution {
         let c_max: u32 = max(rebalance_solution.get_c_max(), machines_workload[1]); //rebalance cmax vs 2.größte maschine von davor
         if c_max < upper_bound { //upper_bound ==old_Cmax
             //zusammenführen
-            let schedule_new: Vec<&(u32, u32)> = schedule.clone().iter().filter(|&&(machine_index, _)| machine_index != max_index && machine_index != min_1_index && machine_index != min_2_index).collect(); //die rebalanced rausschmeißen
+            let mut schedule_new: Vec<_> = schedule.iter().cloned().filter(|&(machine_index, _)| machine_index != max_index && machine_index != min_1_index && machine_index != min_2_index).collect(); //die rebalanced rausschmeißen //TODO ohne &!!?
             println!("ol {:?}", schedule);
             println!("da {:?}", schedule_new);
             //die rebalanced rein hauen
-            for &(machine_index, enum_map) in rebalance_solution.get_schedule().iter() {
-                //TODO überlegen wie des mit den indices funzt
+            for &(machine_index, x) in rebalance_solution.get_schedule().iter() {
+                //TODO überlegen wie des mit den indices funzt -> iwas passt da noch nicht ganz
+                if machine_index == 1 {
+                    schedule_new.push((min_2_index, x));
+                } else if machine_index == 2 {
+                    schedule_new.push((min_1_index, x));
+                } else if machine_index == 0 { //0
+                    schedule_new.push((max_index, x));
+                }
             }
+            println!("di {:?}", schedule_new);
 
             println!("old cmax {} -> new {}", upper_bound, c_max);
             Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), RF)
