@@ -6,7 +6,7 @@ pub struct Input {
 
 impl Input {
     pub fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO (low prio) hier slice verwenden?
-        Input { machine_count, jobs }
+        Self { machine_count, jobs }
     }
 
     pub fn get_machine_count(&self) -> u32 {

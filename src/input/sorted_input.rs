@@ -17,7 +17,7 @@ impl SortedInput {
 
         input.get_mut_jobs().sort_by(compare_desc);
 
-        SortedInput { input, permutation }
+        Self { input, permutation }
     }
 
     pub fn get_input(&self) -> &Input {

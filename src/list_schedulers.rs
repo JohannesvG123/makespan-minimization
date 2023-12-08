@@ -2,8 +2,11 @@ use rand::Rng;
 
 use crate::Algorithm;
 use crate::Algorithm::{BF, FF, LPT, RF, RR};
-use crate::input::SortedInput;
-use crate::output::{Schedule, Solution};
+use crate::input::sorted_input::SortedInput;
+use crate::output::data::Data;
+use crate::output::machine_jobs::MachineJobs;
+use crate::output::schedule::Schedule;
+use crate::output::solution::Solution;
 
 /// Schedulers using algorithms from the LS (List Scheduling family) to solve the makespan-minimization problem
 
@@ -140,8 +143,8 @@ pub fn random_fit(input: &SortedInput, upper_bound: Option<u32>) -> Solution { /
 
 fn init(input: &SortedInput, upper_bound: Option<u32>, algorithm: Algorithm) -> (usize, &[u32], u32, Vec<(u32, u32)>, Vec<u32>) {
     println!("running {:?} algorithm...", algorithm);
-    let machine_count = *input.get_input().get_machine_count() as usize;
-    let jobs = input.get_input().get_jobs().as_slice();
+    let machine_count = input.get_input().get_machine_count() as usize;
+    let jobs = input.get_input().get_jobs();
     let upper_bound: u32 = match upper_bound {
         None => jobs.iter().sum::<u32>() / machine_count as u32 + jobs.iter().max().unwrap(), //trvial upper bound
         Some(val) => val
@@ -163,5 +166,5 @@ fn assign_job(schedule: &mut Vec<(u32, u32)>, machines_workload: &mut [u32], job
 fn end(input: &SortedInput, schedule: &[(u32, u32)], machines_workload: &[u32], algorithm: Algorithm) -> Solution {
     let c_max: u32 = *machines_workload.iter().max().unwrap();
 
-    Solution::new(c_max, Schedule::new(input.unsort_schedule(schedule)), algorithm)
+    Solution::new(algorithm, Data::new(c_max, Schedule::new(schedule.to_vec()), MachineJobs::new(vec![]))) //TODO mehr konstruktoren usw einfügen + evtl data und machine jobs privat?
 }

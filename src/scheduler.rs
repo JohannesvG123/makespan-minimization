@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use crate::Algorithm;
 use crate::input::sorted_input::SortedInput;
-use crate::output::Solution;
-
-//TODO DESIGN-FRAGE
+use crate::output::solution::Solution;
 
 pub struct SchedulingObjects {
     //TODO getter/setter statt pub
