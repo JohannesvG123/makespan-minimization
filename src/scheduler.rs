@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::Algorithm;
-use crate::input::SortedInput;
+use crate::input::sorted_input::SortedInput;
 use crate::output::Solution;
 
 //TODO DESIGN-FRAGE

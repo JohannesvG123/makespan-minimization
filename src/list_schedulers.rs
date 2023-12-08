@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::Algorithm::{LPT, RR};
-use crate::input::SortedInput;
+use crate::input::sorted_input::SortedInput;
 use crate::output::Solution;
 use crate::scheduler::{Scheduler, SchedulingObjects};
 

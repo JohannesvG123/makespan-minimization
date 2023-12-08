@@ -8,7 +8,7 @@ use enum_map::Enum;
 use rand::Rng;
 use rayon::prelude::*;
 
-use crate::input::parse_input;
+use crate::input::get_input;
 use crate::list_schedulers::LPTScheduler;
 //use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
 use crate::scheduler::Scheduler;
@@ -73,13 +73,7 @@ fn main() {
     //start:
     let args = Args::parse();
 
-    let input = match parse_input(&args.path) {
-        Ok(input) => Rc::new(input), //TODO das muss man für parallel anscheinend anpassen
-        Err(e) => {
-            println!("ERROR: {}", e.to_string());
-            return;
-        }
-    };
+    let input = Rc::new(get_input(&args.path));
 
     let mut s: Box<dyn Scheduler> = Box::new(LPTScheduler::new(input, None));
     println!("{}", s.schedule());
