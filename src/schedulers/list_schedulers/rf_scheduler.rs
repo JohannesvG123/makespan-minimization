@@ -5,9 +5,9 @@ use rand::Rng;
 use crate::Algorithm;
 use crate::Algorithm::RF;
 use crate::input::input::Input;
-use crate::list_schedulers::assign_job;
 use crate::output::solution::Solution;
-use crate::scheduler::Scheduler;
+use crate::schedulers::list_schedulers::assign_job;
+use crate::schedulers::scheduler::Scheduler;
 
 pub struct RFScheduler {
     input: Rc<Input>,

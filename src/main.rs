@@ -10,18 +10,17 @@ use rayon::prelude::*;
 
 use crate::input::get_input;
 use crate::input::input::Input;
-use crate::list_schedulers::bf_scheduler::BFScheduler;
-use crate::list_schedulers::ff_scheduler::FFScheduler;
-use crate::list_schedulers::lpt_scheduler::LPTScheduler;
-use crate::list_schedulers::rf_scheduler::RFScheduler;
-use crate::list_schedulers::rr_scheduler::RRScheduler;
+use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
+use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
+use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
+use crate::schedulers::list_schedulers::rf_scheduler::RFScheduler;
+use crate::schedulers::list_schedulers::rr_scheduler::RRScheduler;
 use crate::output::output;
-use crate::scheduler::Scheduler;
+use crate::schedulers::scheduler::Scheduler;
 
 mod input;
 mod output;
-mod list_schedulers;
-mod scheduler;
+mod schedulers;
 
 /// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
