@@ -1,15 +1,15 @@
 #[derive(Debug)]
 pub struct Input {
-    machine_count: u32,
+    machine_count: usize,
     jobs: Vec<u32>,
 }
 
 impl Input {
-    pub fn new(machine_count: u32, jobs: Vec<u32>) -> Self { //TODO (low prio) hier slice verwenden?
+    pub fn new(machine_count: usize, jobs: Vec<u32>) -> Self { //TODO (low prio) hier slice verwenden?
         Self { machine_count, jobs }
     }
 
-    pub fn get_machine_count(&self) -> u32 {
+    pub fn get_machine_count(&self) -> usize {
         self.machine_count
     }
 

@@ -1,3 +1,5 @@
+use permutation::Permutation;
+
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::schedule::Schedule;
 
@@ -21,5 +23,10 @@ impl Data {
     }
     pub fn get_machines(&self) -> &MachineJobs {
         &self.machines
+    }
+
+    pub fn unsort(&mut self, permutation: &mut Permutation) {
+        permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
+        //permutation.apply_inv_slice_in_place(self.machines.as_mut_slice()); //TODO rein machen
     }
 }

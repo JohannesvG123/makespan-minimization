@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::input::sorted_input::SortedInput;
 
-mod input;
+pub mod input;
 pub mod sorted_input;
 
 pub fn get_input(path_buf: &PathBuf) -> SortedInput {
@@ -28,7 +28,7 @@ fn parse_input(input_str: &str) -> SortedInput {//TODO (low prio) auf Tokenized 
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();
     let job_count = split.next().unwrap().to_string().parse::<u32>().unwrap();
-    let machine_count = split.next().unwrap().to_string().parse::<u32>().unwrap();
+    let machine_count = split.next().unwrap().to_string().parse::<u32>().unwrap() as usize;
     let mut jobs: Vec<u32> = Vec::new();
     split.by_ref().for_each(|j| jobs.push(j.parse::<u32>().unwrap()));
 

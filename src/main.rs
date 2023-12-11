@@ -1,16 +1,14 @@
 use std::fmt;
 use std::hash::Hash;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use clap::{arg, Parser, ValueEnum};
-use enum_map::{Enum, enum_map};
+use enum_map::Enum;
 use rand::Rng;
 use rayon::prelude::*;
 
 use crate::input::get_input;
-use crate::list_schedulers::{best_fit, first_fit, longest_processing_time, random_fit, round_robin};
-use crate::output::output;
+use crate::list_schedulers::rr_scheduler::RRScheduler;
 use crate::scheduler::Scheduler;
 
 mod input;
@@ -62,23 +60,27 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map = enum_map! {
+    /*let algorithm_map = enum_map! {
             Algorithm::LPT => |input| longest_processing_time(input,None),
             Algorithm::BF=> |input| best_fit(input,None),
             Algorithm::FF=> |input| first_fit(input,None),
             Algorithm::RR=> |input| round_robin(input,None),
             Algorithm::RF=> |input| random_fit(input,None),
-    };
+    };*/
 
     //start:
     let args = Args::parse();
 
-    let input = Rc::new(get_input(&args.path));
-    let input = input.as_ref(); //TODO
-    //let mut s: Box<dyn Scheduler> = Box::new(LPTScheduler::new(input, None));
-    //println!("{}", s.schedule());
+    let mut sorted_input = get_input(&args.path);
+    let input = sorted_input.get_input();
 
-    args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
+    //TODO daheim: LS family analog umbauen 2/2
+    let mut s: Box<dyn Scheduler> = Box::new(RRScheduler::new(input, None, None));
+    let mut sol = s.schedule();
+    sol.get_mut_data().unsort(sorted_input.get_mut_permutation()); //TODO so muss beim output wieder unsorted werden
+    println!("diese: {}", sol);
+
+    /*args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
         output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
-    });
+    });*/
 }

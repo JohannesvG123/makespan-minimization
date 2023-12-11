@@ -2,6 +2,8 @@ use std::fmt;
 
 use crate::Algorithm;
 use crate::output::data::Data;
+use crate::output::machine_jobs::MachineJobs;
+use crate::output::schedule::Schedule;
 
 #[derive(Debug)]
 pub struct Solution {
@@ -11,11 +13,11 @@ pub struct Solution {
 }
 
 impl Solution {
-    pub fn new(used_algorithm: Algorithm, data: Data) -> Self {
+    pub fn new(used_algorithm: Algorithm, c_max: u32, schedule: Vec<(u32, u32)>, machine_jobs: Vec<(u32, Vec<u32>)>) -> Self {
         Self {
             satisfiable: true,
             used_algorithm,
-            data: Some(data),
+            data: Some(Data::new(c_max, Schedule::new(schedule), MachineJobs::new(machine_jobs))),
         }
     }
 
@@ -40,6 +42,17 @@ impl Solution {
             match &self.data {
                 None => { panic!() }//impossible to reach this
                 Some(data) => { &data }
+            }
+        } else {
+            panic!("The solution is unsatisfiable, there is no data!");
+        }
+    }
+
+    pub fn get_mut_data(&mut self) -> &mut Data {
+        if self.satisfiable {
+            match &mut self.data {
+                None => { panic!() }//impossible to reach this
+                Some(data) => { data }
             }
         } else {
             panic!("The solution is unsatisfiable, there is no data!");
