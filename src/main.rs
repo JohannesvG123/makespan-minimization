@@ -1,14 +1,21 @@
 use std::fmt;
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use clap::{arg, Parser, ValueEnum};
-use enum_map::Enum;
+use enum_map::{Enum, enum_map, EnumMap};
 use rand::Rng;
 use rayon::prelude::*;
 
 use crate::input::get_input;
+use crate::input::input::Input;
+use crate::list_schedulers::bf_scheduler::BFScheduler;
+use crate::list_schedulers::ff_scheduler::FFScheduler;
+use crate::list_schedulers::lpt_scheduler::LPTScheduler;
+use crate::list_schedulers::rf_scheduler::RFScheduler;
 use crate::list_schedulers::rr_scheduler::RRScheduler;
+use crate::output::output;
 use crate::scheduler::Scheduler;
 
 mod input;
@@ -60,13 +67,13 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    /*let algorithm_map = enum_map! {
-            Algorithm::LPT => |input| longest_processing_time(input,None),
-            Algorithm::BF=> |input| best_fit(input,None),
-            Algorithm::FF=> |input| first_fit(input,None),
-            Algorithm::RR=> |input| round_robin(input,None),
-            Algorithm::RF=> |input| random_fit(input,None),
-    };*/
+    let algorithm_map: EnumMap<Algorithm, fn(Rc<Input>) -> Box<dyn Scheduler>> = enum_map! {
+        Algorithm::LPT => |input:Rc<Input>| Box::new(LPTScheduler::new(input,None,None)) as Box<dyn Scheduler>,
+        Algorithm::BF=> |input:Rc<Input>| Box::new(BFScheduler::new(input,None,None))as Box<dyn Scheduler>,
+        Algorithm::FF=> |input:Rc<Input>| Box::new(FFScheduler::new(input,None,None))as Box<dyn Scheduler>,
+        Algorithm::RR=> |input:Rc<Input>| Box::new(RRScheduler::new(input,None,None))as Box<dyn Scheduler>,
+        Algorithm::RF=> |input:Rc<Input>| Box::new(RFScheduler::new(input,None,None))as Box<dyn Scheduler>,
+    };
 
     //start:
     let args = Args::parse();
@@ -74,13 +81,15 @@ fn main() {
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
 
-    //TODO daheim: LS family analog umbauen 2/2
-    let mut s: Box<dyn Scheduler> = Box::new(RRScheduler::new(input, None, None));
-    let mut sol = s.schedule();
-    sol.get_mut_data().unsort(sorted_input.get_mut_permutation()); //TODO so muss beim output wieder unsorted werden
-    println!("diese: {}", sol);
+    let mut schedulers: Vec<Box<dyn Scheduler>> = vec![];
+    for algorithm in args.algos.iter() {
+        schedulers.push(algorithm_map[algorithm.clone()](input.clone()));
+    }
 
-    /*args.algos.par_iter().for_each(|algo| { //TODO parallelisierung krasser machen
-        output(vec![(algorithm_map[algo.clone()](&input), algo)], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO clone entfernen (einf ref übergeben) und output methode umschreiben für single output wieder
-    });*/
+
+    for mut scheduler in schedulers {
+        let mut solution = scheduler.schedule();
+        solution.get_mut_data().unsort(sorted_input.get_mut_permutation()); //TODO hier wird gerade unsorted (sollte eher in output methode oder so passieren)
+        output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO output methode verbessern/umschreiben
+    }
 }

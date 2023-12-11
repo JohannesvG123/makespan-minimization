@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use crate::Algorithm;
 use crate::Algorithm::LPT;
 use crate::input::input::Input;
 use crate::list_schedulers::assign_job;
@@ -15,6 +16,10 @@ pub struct LPTScheduler {
 impl Scheduler for LPTScheduler {
     fn schedule(&mut self) -> Solution {
         self.longest_processing_time()
+    }
+
+    fn get_algorithm(&self) -> Algorithm {
+        LPT
     }
 }
 

@@ -6,7 +6,6 @@ use crate::output::solution::Solution;
 
 pub mod solution;
 pub mod data;
-//TODO ggf nicht mehr public wenns geht(?)
 pub mod machine_jobs;
 pub mod schedule;
 
