@@ -67,6 +67,6 @@ impl BFScheduler {
         let c_max: u32 = *machines_workload.iter().max().unwrap();
 
 
-        Solution::new(BF, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])])
+        Solution::new(BF, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])]) //TODO 1 machine_jobs -> eig reichts ja nur machine jobs zu halten und dann daraus schedule zu berechnen
     }
 }

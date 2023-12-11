@@ -88,7 +88,7 @@ fn main() {
 
     for mut scheduler in schedulers {
         let mut solution = scheduler.schedule();
-        solution.get_mut_data().unsort(sorted_input.get_mut_permutation()); //TODO hier wird gerade unsorted (sollte eher in output methode oder so passieren)
-        output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //TODO output methode verbessern/umschreiben
+        solution.get_mut_data().unsort(sorted_input.get_mut_permutation());
+        output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
     }
 }

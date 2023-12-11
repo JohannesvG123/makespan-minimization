@@ -10,7 +10,7 @@ pub mod machine_jobs;
 pub mod schedule;
 
 pub fn output(solutions: Vec<(Solution, &Algorithm)>, write: bool, write_name: Option<String>, input_file_name: &str) {
-    if write { //TODO hier resorting + mehr möglichkeiten
+    if write { //TODO (wenn parallel framework steht) hier unsorting + mehr möglichkeiten
         solutions.iter().for_each(|(solution, algorithm)| {
             let write_name = match &write_name {
                 None => format!("{0}_{1:?}_solution", input_file_name, *algorithm),
