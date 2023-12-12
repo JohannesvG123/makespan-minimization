@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::Algorithm;
 use crate::Algorithm::LPT;
 use crate::input::input::Input;
+use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::list_schedulers::assign_job;
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct LPTScheduler {
@@ -41,18 +41,20 @@ impl LPTScheduler {
     fn longest_processing_time(&self) -> Solution {
         println!("running {:?} algorithm...", LPT);
 
-        let mut schedule = Vec::with_capacity(self.input.get_job_count());
-        let mut machines_workload = vec![0; self.input.get_machine_count()];
+        let machine_count = self.input.get_machine_count();
+        let jobs = self.input.get_jobs();
+
+        let mut machine_jobs = MachineJobs::empty(machine_count);
         let mut current_machine: usize = 0;
         let mut foreward: bool = true; // used to fill the machines in this order: (m=3) 0-1-2-2-1-0-0-1-2...
         let mut pause: bool = false;
 
-        for &job in self.input.get_jobs().iter() {
-            if machines_workload[current_machine] + job > self.upper_bound { //satisfiability check
+        for job_index in 0..self.input.get_job_count() {
+            if machine_jobs.get_machine_workload(current_machine) + jobs[job_index] > self.upper_bound { //satisfiability check
                 println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", self.upper_bound, LPT);
                 return Solution::unsatisfiable(LPT);
             }
-            assign_job(&mut schedule, machines_workload.as_mut_slice(), job, current_machine);
+            machine_jobs.assign_job(jobs[job_index], current_machine, job_index);
 
             if foreward {
                 if pause { pause = false; } else { current_machine += 1; }
@@ -69,9 +71,6 @@ impl LPTScheduler {
             }
         }
 
-        let c_max: u32 = *machines_workload.iter().max().unwrap(); //TODO cmax smarter berechnen evtl(?)
-
-        //TODO machine_jobs richtig befüllen (bei allen LS schedulern)
-        Solution::new(LPT, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])])
+        Solution::new(LPT, machine_jobs, self.input.get_jobs())
     }
 }

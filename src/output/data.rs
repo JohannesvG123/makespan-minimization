@@ -7,12 +7,12 @@ use crate::output::schedule::Schedule;
 pub struct Data {
     c_max: u32,
     schedule: Schedule,
-    machines: MachineJobs,
+    machine_jobs: MachineJobs,
 }
 
 impl Data {
     pub fn new(c_max: u32, schedule: Schedule, machines: MachineJobs) -> Self {
-        Self { c_max, schedule, machines }
+        Self { c_max, schedule, machine_jobs: machines }
     }
 
     pub fn get_c_max(&self) -> u32 {
@@ -21,12 +21,12 @@ impl Data {
     pub fn get_schedule(&self) -> &Schedule {
         &self.schedule
     }
-    pub fn get_machines(&self) -> &MachineJobs {
-        &self.machines
+    pub fn get_machine_jobs(&self) -> &MachineJobs {
+        &self.machine_jobs
     }
 
     pub fn unsort(&mut self, permutation: &mut Permutation) {
         permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
-        //permutation.apply_inv_slice_in_place(self.machines.as_mut_slice()); //TODO 2 rein machen
+        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
     }
 }

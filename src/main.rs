@@ -10,12 +10,12 @@ use rayon::prelude::*;
 
 use crate::input::get_input;
 use crate::input::input::Input;
+use crate::output::output;
 use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
 use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
 use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
 use crate::schedulers::list_schedulers::rf_scheduler::RFScheduler;
 use crate::schedulers::list_schedulers::rr_scheduler::RRScheduler;
-use crate::output::output;
 use crate::schedulers::scheduler::Scheduler;
 
 mod input;

@@ -3,7 +3,6 @@ use std::fmt;
 use crate::Algorithm;
 use crate::output::data::Data;
 use crate::output::machine_jobs::MachineJobs;
-use crate::output::schedule::Schedule;
 
 #[derive(Debug)]
 pub struct Solution {
@@ -13,11 +12,11 @@ pub struct Solution {
 }
 
 impl Solution {
-    pub fn new(used_algorithm: Algorithm, c_max: u32, schedule: Vec<(u32, u32)>, machine_jobs: Vec<(u32, Vec<u32>)>) -> Self {
+    pub fn new(used_algorithm: Algorithm, machine_jobs: MachineJobs, jobs: &[u32]) -> Self {//TODO (low prio) schedule nur on demand ausrechnen
         Self {
             satisfiable: true,
             used_algorithm,
-            data: Some(Data::new(c_max, Schedule::new(schedule), MachineJobs::new(machine_jobs))),
+            data: Some(Data::new(machine_jobs.get_c_max(), machine_jobs.calculate_schedule(jobs), machine_jobs)),
         }
     }
 

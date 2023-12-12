@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::Algorithm;
 use crate::Algorithm::RR;
 use crate::input::input::Input;
+use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::list_schedulers::assign_job;
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct RRScheduler {
@@ -41,14 +41,16 @@ impl RRScheduler {
     pub fn round_robin(&self) -> Solution {
         println!("running {:?} algorithm...", RR);
 
-        let mut schedule = Vec::with_capacity(self.input.get_job_count());
-        let mut machines_workload = vec![0; self.input.get_machine_count()];
+        let machine_count = self.input.get_machine_count();
+        let jobs = self.input.get_jobs();
 
-        for j in 0..self.input.get_job_count() {
-            let mut machine = j.rem_euclid(self.input.get_machine_count());
+        let mut machine_jobs = MachineJobs::empty(machine_count);
+
+        for job_index in 0..self.input.get_job_count() {
+            let mut machine = job_index.rem_euclid(self.input.get_machine_count());
 
             let mut offset = 0;
-            while machines_workload[(machine + offset).rem_euclid(self.input.get_machine_count())] + self.input.get_jobs()[j] > self.upper_bound {
+            while machine_jobs.get_machine_workload((machine + offset).rem_euclid(self.input.get_machine_count())) + self.input.get_jobs()[job_index] > self.upper_bound {
                 offset += 1;
                 if offset == self.input.get_machine_count() { //satisfiability check
                     println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", self.upper_bound, RR);
@@ -57,11 +59,9 @@ impl RRScheduler {
             }
             machine += offset;
 
-            assign_job(&mut schedule, machines_workload.as_mut_slice(), self.input.get_jobs()[j], machine);
+            machine_jobs.assign_job(jobs[job_index], machine, job_index);
         }
 
-        let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-        Solution::new(RR, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])])
+        Solution::new(RR, machine_jobs, self.input.get_jobs())
     }
 }

@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::Algorithm;
 use crate::Algorithm::FF;
 use crate::input::input::Input;
+use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::list_schedulers::assign_job;
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct FFScheduler {
@@ -41,13 +41,15 @@ impl FFScheduler {
     pub fn first_fit(&self) -> Solution {
         println!("running {:?} algorithm...", FF);
 
-        let mut schedule = Vec::with_capacity(self.input.get_job_count());
-        let mut machines_workload = vec![0; self.input.get_machine_count()];
+        let machine_count = self.input.get_machine_count();//TODO 1 analog bei den anderen rin hauen
+        let jobs = self.input.get_jobs();
 
-        for &job in self.input.get_jobs().iter() {
+        let mut machine_jobs = MachineJobs::empty(machine_count);
+
+        for job_index in 0..self.input.get_job_count() {
             let mut current_machine: usize = 0;
 
-            if machines_workload[current_machine] + job > self.upper_bound {
+            if machine_jobs.get_machine_workload(current_machine) + jobs[job_index] > self.upper_bound {
                 current_machine += 1;
                 if current_machine == self.input.get_machine_count() { //satisfiability check
                     println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", self.upper_bound, FF);
@@ -55,13 +57,9 @@ impl FFScheduler {
                 }
             }
 
-            assign_job(&mut schedule, machines_workload.as_mut_slice(), job, current_machine);
+            machine_jobs.assign_job(jobs[job_index], current_machine, job_index)
         }
 
-
-        let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-
-        Solution::new(FF, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])])
+        Solution::new(FF, machine_jobs, self.input.get_jobs())
     }
 }

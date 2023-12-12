@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::Algorithm;
 use crate::Algorithm::BF;
 use crate::input::input::Input;
+use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::list_schedulers::assign_job;
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct BFScheduler {
@@ -41,17 +41,19 @@ impl BFScheduler {
     pub fn best_fit(&self) -> Solution {
         println!("running {:?} algorithm...", BF);
 
-        let mut schedule = Vec::with_capacity(self.input.get_job_count());
-        let mut machines_workload = vec![0; self.input.get_machine_count()];
+        let machine_count = self.input.get_machine_count();//TODO 1 analog bei den anderen rin hauen
+        let jobs = self.input.get_jobs();
 
-        for &job in self.input.get_jobs().iter() {
+        let mut machine_jobs = MachineJobs::empty(machine_count);
+
+        for job_index in 0..self.input.get_job_count() {
             let mut best_machine = 0;
             let mut fitting_machine_found = false;
-            for m in 0..self.input.get_machine_count() { //man könnte hier speedup erreichen wenn man ab Eingabegröße x eine BH-PQ nutzt...
-                if !fitting_machine_found && machines_workload[m] + job <= self.upper_bound {
+            for m in 0..machine_count { //man könnte hier speedup erreichen wenn man ab Eingabegröße x eine BH-PQ nutzt...
+                if !fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= self.upper_bound {
                     best_machine = m;
                     fitting_machine_found = true
-                } else if fitting_machine_found && machines_workload[m] + job <= self.upper_bound && machines_workload[m] + job > machines_workload[best_machine] + job {
+                } else if fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= self.upper_bound && machine_jobs.get_machine_workload(m) + jobs[job_index] > machine_jobs.get_machine_workload(best_machine) + jobs[job_index] {
                     best_machine = m;
                 }
             }
@@ -60,13 +62,9 @@ impl BFScheduler {
                 return Solution::unsatisfiable(BF);
             }
 
-            assign_job(&mut schedule, machines_workload.as_mut_slice(), job, best_machine);
+            machine_jobs.assign_job(jobs[job_index], best_machine, job_index);
         }
 
-
-        let c_max: u32 = *machines_workload.iter().max().unwrap();
-
-
-        Solution::new(BF, c_max, schedule, vec![(2, vec![1, 2, 3]), (2, vec![1, 2, 3])]) //TODO 1 machine_jobs -> eig reichts ja nur machine jobs zu halten und dann daraus schedule zu berechnen
+        Solution::new(BF, machine_jobs, self.input.get_jobs())
     }
 }
