@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use permutation::Permutation;
 
@@ -6,7 +6,7 @@ use crate::input::input::Input;
 
 #[derive(Debug)]
 pub struct SortedInput {
-    input: Rc<Input>,
+    input: Arc<Input>,
     permutation: Permutation, //used for sorting and reversing the sorting
 }
 
@@ -20,17 +20,21 @@ impl SortedInput {
         input.get_mut_jobs().sort_by(compare_desc);
 
         Self {
-            input: Rc::new(input),
+            input: Arc::new(input),
             permutation,
         }
     }
 
-    pub fn get_input(&self) -> Rc<Input> {
+    pub fn get_input(&self) -> Arc<Input> {
         self.input.clone()
     }
 
     pub fn get_mut_permutation(&mut self) -> &mut Permutation {
         &mut self.permutation
+    }
+
+    pub fn get_permutation(&self) -> &Permutation {
+        &self.permutation
     }
 
     pub fn unsort_schedule<T: Clone>(&self, schedule: &[T]) -> Vec<T> { //TODO (low prio) löschen wenn nicht verwendet wird -> wurde wo anders hin ausgelagert

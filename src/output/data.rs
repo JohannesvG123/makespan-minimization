@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use permutation::Permutation;
 
 use crate::output::machine_jobs::MachineJobs;
@@ -25,8 +27,13 @@ impl Data {
         &self.machine_jobs
     }
 
-    pub fn unsort(&mut self, permutation: &mut Permutation) {
+    pub fn unsort_inplace(&mut self, permutation: &mut Permutation) {
         permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
+        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
+    }
+
+    pub fn unsort(&mut self, permutation: Arc<Permutation>) {
+        self.schedule = Schedule::new(permutation.apply_slice(self.schedule.as_slice()));
         //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
     }
 }

@@ -1,7 +1,10 @@
 use std::fmt;
 use std::hash::Hash;
+use std::ops::DerefMut;
 use std::path::PathBuf;
-use std::rc::Rc;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 
 use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
@@ -66,29 +69,38 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map: EnumMap<Algorithm, fn(Rc<Input>) -> Box<dyn Scheduler>> = enum_map! {
-        Algorithm::LPT => |input:Rc<Input>| Box::new(LPTScheduler::new(input,None,None)) as Box<dyn Scheduler>,
-        Algorithm::BF=> |input:Rc<Input>| Box::new(BFScheduler::new(input,None,None))as Box<dyn Scheduler>,
-        Algorithm::FF=> |input:Rc<Input>| Box::new(FFScheduler::new(input,None,None))as Box<dyn Scheduler>,
-        Algorithm::RR=> |input:Rc<Input>| Box::new(RRScheduler::new(input,None,None))as Box<dyn Scheduler>,
-        Algorithm::RF=> |input:Rc<Input>| Box::new(RFScheduler::new(input,None,None))as Box<dyn Scheduler>,
+    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>) -> Box<dyn Scheduler + Send>> = enum_map! {
+        Algorithm::LPT => |input:Arc<Input>| Box::new(LPTScheduler::new(input,None,None)) as Box<dyn Scheduler + Send>,
+        Algorithm::BF=> |input:Arc<Input>| Box::new(BFScheduler::new(input,None,None))as Box<dyn Scheduler + Send>,
+        Algorithm::FF=> |input:Arc<Input>| Box::new(FFScheduler::new(input,None,None))as Box<dyn Scheduler + Send>,
+        Algorithm::RR=> |input:Arc<Input>| Box::new(RRScheduler::new(input,None,None))as Box<dyn Scheduler + Send>,
+        Algorithm::RF=> |input:Arc<Input>| Box::new(RFScheduler::new(input,None,None))as Box<dyn Scheduler + Send>,
     };
 
     //start:
-    let args = Args::parse();
+    let args = Arc::new(Args::parse());
 
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
 
-    let mut schedulers: Vec<Box<dyn Scheduler>> = vec![];
+    let mut perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
+
+    let thread_pool = rayon::ThreadPoolBuilder::new().build().unwrap();
+
     for algorithm in args.algos.iter() {
-        schedulers.push(algorithm_map[algorithm.clone()](input.clone()));
+        let input_tmp = input.clone();
+        let perm_tmp = perm.clone();
+        let algo = algorithm.clone();
+        let args_tmp = args.clone();
+
+        thread_pool.spawn(move || {
+            let mut scheduler = algorithm_map[algo](input_tmp);
+            let mut solution = scheduler.schedule();
+
+            solution.get_mut_data().unsort(perm_tmp);
+            output(vec![(solution, &scheduler.get_algorithm())], args_tmp.write.clone(), args_tmp.write_name.clone(), args_tmp.path.file_stem().unwrap().to_str().unwrap());
+        });
     }
 
-
-    for mut scheduler in schedulers {
-        let mut solution = scheduler.schedule();
-        solution.get_mut_data().unsort(sorted_input.get_mut_permutation());
-        output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
-    }
+    sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden?
 }

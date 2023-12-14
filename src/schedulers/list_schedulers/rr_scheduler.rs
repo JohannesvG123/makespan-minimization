@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::Algorithm;
 use crate::Algorithm::RR;
@@ -8,11 +9,10 @@ use crate::output::solution::Solution;
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct RRScheduler {
-    input: Rc<Input>,
+    input: Arc<Input>,
     upper_bound: u32,
     lower_bound: u32,
 }
-
 impl Scheduler for RRScheduler {
     fn schedule(&mut self) -> Solution {
         self.round_robin()
@@ -24,7 +24,7 @@ impl Scheduler for RRScheduler {
 }
 
 impl RRScheduler {
-    pub fn new(input: Rc<Input>, upper_bound_opt: Option<u32>, lower_bound_opt: Option<u32>) -> Self {
+    pub fn new(input: Arc<Input>, upper_bound_opt: Option<u32>, lower_bound_opt: Option<u32>) -> Self {
         let upper_bound: u32 = match upper_bound_opt {
             None => input.get_jobs().iter().sum::<u32>() / input.get_machine_count() as u32 + input.get_jobs().iter().max().unwrap(), //trvial upper bound
             Some(val) => val
