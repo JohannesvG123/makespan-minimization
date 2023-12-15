@@ -7,7 +7,7 @@ pub struct Bounds {
     lower_bound: u32,
 }
 
-impl Bounds {
+impl Bounds {//TODO 1 umbauen auf atomic: https://doc.rust-lang.org/std/sync/atomic/struct.AtomicU32.html
     pub fn new(upper_bound: u32, lower_bound: u32) -> Self {
         Self { upper_bound, lower_bound }
     }
