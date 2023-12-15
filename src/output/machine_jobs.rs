@@ -1,6 +1,6 @@
 use crate::output::schedule::Schedule;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 ///<(machine0_workload,<machine0_job_numbers...>),...>
 pub struct MachineJobs(Vec<(u32, Vec<usize>)>);
 

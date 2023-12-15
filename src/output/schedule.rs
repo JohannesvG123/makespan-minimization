@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::output::machine_jobs::MachineJobs;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 ///<(machine_number_job1,start_time_job1),...>
 pub struct Schedule(Vec<(u32, u32)>); //TODO (low prio) auf usize,u32 umstellen
 

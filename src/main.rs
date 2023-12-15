@@ -13,6 +13,7 @@ use rayon::prelude::*;
 
 use crate::global_bounds::bounds::Bounds;
 use crate::global_bounds::create_global_bounds;
+use crate::good_solutions::create_good_solutions;
 use crate::input::get_input;
 use crate::input::input::Input;
 use crate::output::output;
@@ -27,6 +28,7 @@ mod input;
 mod output;
 mod schedulers;
 mod global_bounds;
+mod good_solutions;
 
 /// Program to solve makespan-minimization problems
 #[derive(Parser, Debug)]
@@ -89,6 +91,7 @@ fn main() {
 
     let thread_pool = rayon::ThreadPoolBuilder::new().build().unwrap();
     let global_bounds = create_global_bounds(Arc::clone(&input));
+    let good_solutions = create_good_solutions(20);
 
     for algorithm in args.algos.iter() {
         let input = Arc::clone(&input); //TODO alles inline am ende
@@ -96,16 +99,21 @@ fn main() {
         let algo = algorithm.clone();
         let args = Arc::clone(&args);
         let global_bounds = Arc::clone(&global_bounds);
+        let good_solutions = Arc::clone(&good_solutions);
 
         thread_pool.spawn(move || {
             let mut scheduler = algorithm_map[algo](input, global_bounds);
             let mut solution = scheduler.schedule();
-
-            solution.get_mut_data().unsort(perm);
-            output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
+            //ausgabe
+            let mut s = solution.clone();
+            s.get_mut_data().unsort(perm);
+            output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
+            //
+            good_solutions.lock().unwrap().add_solution(solution); //todo diesen call in extra methode schieben damit mutex unlockt? evtl
         });
     }
 
     sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden? -> handles halten und joinen oder mit synchronisationsmechanismus
+    println!("{:?}", good_solutions.lock().unwrap().);//TODO dasimma als nöchstes muss man testen
 }
 
