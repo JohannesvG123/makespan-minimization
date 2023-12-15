@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::DerefMut;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -82,25 +82,26 @@ fn main() {
 
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
-
+    let m = Arc::new(Mutex::new(Duration::from_secs(3)));
     let mut perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
 
     let thread_pool = rayon::ThreadPoolBuilder::new().build().unwrap();
 
     for algorithm in args.algos.iter() {
-        let input_tmp = input.clone();
-        let perm_tmp = perm.clone();
+        let input = Arc::clone(&input);
+        let perm = Arc::clone(&perm);
         let algo = algorithm.clone();
-        let args_tmp = args.clone();
+        let args = Arc::clone(&args);
 
         thread_pool.spawn(move || {
-            let mut scheduler = algorithm_map[algo](input_tmp);
+            let mut scheduler = algorithm_map[algo](input);
             let mut solution = scheduler.schedule();
 
-            solution.get_mut_data().unsort(perm_tmp);
-            output(vec![(solution, &scheduler.get_algorithm())], args_tmp.write.clone(), args_tmp.write_name.clone(), args_tmp.path.file_stem().unwrap().to_str().unwrap());
+            solution.get_mut_data().unsort(perm);
+            output(vec![(solution, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
         });
     }
 
     sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden?
 }
+
