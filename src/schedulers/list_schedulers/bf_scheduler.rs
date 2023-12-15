@@ -1,8 +1,8 @@
-use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::Algorithm;
 use crate::Algorithm::BF;
+use crate::global_bounds::bounds::Bounds;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -10,9 +10,9 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct BFScheduler {
     input: Arc<Input>,
-    upper_bound: u32,
-    lower_bound: u32,
+    global_bounds: Arc<Mutex<Bounds>>,
 }
+
 impl Scheduler for BFScheduler {
     fn schedule(&mut self) -> Solution {
         self.best_fit()
@@ -24,23 +24,15 @@ impl Scheduler for BFScheduler {
 }
 
 impl BFScheduler {
-    pub fn new(input: Arc<Input>, upper_bound_opt: Option<u32>, lower_bound_opt: Option<u32>) -> Self {
-        let upper_bound: u32 = match upper_bound_opt {
-            None => input.get_jobs().iter().sum::<u32>() / input.get_machine_count() as u32 + input.get_jobs().iter().max().unwrap(), //trvial upper bound
-            Some(val) => val
-        };
-        let lower_bound = match lower_bound_opt {
-            None => 0,
-            Some(val) => val
-        };
-
-        Self { input, upper_bound, lower_bound }
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>) -> Self {
+        Self { input, global_bounds }
     }
 
     /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned
     pub fn best_fit(&self) -> Solution {
         println!("running {:?} algorithm...", BF);
 
+        let (upper_bound, lower_bound) = self.global_bounds.lock().unwrap().get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 
@@ -50,21 +42,21 @@ impl BFScheduler {
             let mut best_machine = 0;
             let mut fitting_machine_found = false;
             for m in 0..machine_count { //man könnte hier speedup erreichen wenn man ab Eingabegröße x eine BH-PQ nutzt...
-                if !fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= self.upper_bound {
+                if !fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= upper_bound {
                     best_machine = m;
                     fitting_machine_found = true
-                } else if fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= self.upper_bound && machine_jobs.get_machine_workload(m) + jobs[job_index] > machine_jobs.get_machine_workload(best_machine) + jobs[job_index] {
+                } else if fitting_machine_found && machine_jobs.get_machine_workload(m) + jobs[job_index] <= upper_bound && machine_jobs.get_machine_workload(m) + jobs[job_index] > machine_jobs.get_machine_workload(best_machine) + jobs[job_index] {
                     best_machine = m;
                 }
             }
             if !fitting_machine_found { //satisfiability check
-                println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", self.upper_bound, BF);
+                println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF);
                 return Solution::unsatisfiable(BF);
             }
 
             machine_jobs.assign_job(jobs[job_index], best_machine, job_index);
         }
 
-        Solution::new(BF, machine_jobs, self.input.get_jobs())
+        Solution::new(BF, machine_jobs, self.input.get_jobs() ,Arc::clone(&self.global_bounds))
     }
 }

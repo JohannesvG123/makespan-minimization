@@ -1,10 +1,10 @@
-use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use rand::Rng;
 
 use crate::Algorithm;
 use crate::Algorithm::RF;
+use crate::global_bounds::bounds::Bounds;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -12,9 +12,9 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct RFScheduler {
     input: Arc<Input>,
-    upper_bound: u32,
-    lower_bound: u32,
+    global_bounds: Arc<Mutex<Bounds>>,
 }
+
 impl Scheduler for RFScheduler {
     fn schedule(&mut self) -> Solution {
         self.random_fit()
@@ -26,23 +26,15 @@ impl Scheduler for RFScheduler {
 }
 
 impl RFScheduler {
-    pub fn new(input: Arc<Input>, upper_bound_opt: Option<u32>, lower_bound_opt: Option<u32>) -> Self {
-        let upper_bound: u32 = match upper_bound_opt {
-            None => input.get_jobs().iter().sum::<u32>() / input.get_machine_count() as u32 + input.get_jobs().iter().max().unwrap(), //trvial upper bound
-            Some(val) => val
-        };
-        let lower_bound = match lower_bound_opt {
-            None => 0,
-            Some(val) => val
-        };
-
-        Self { input, upper_bound, lower_bound }
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>) -> Self {
+        Self { input, global_bounds }
     }
 
     /// Assigns the jobs to random machines
     pub fn random_fit(&self) -> Solution {
         println!("running {:?} algorithm...", RF);
 
+        let (upper_bound, lower_bound) = self.global_bounds.lock().unwrap().get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 
@@ -54,13 +46,13 @@ impl RFScheduler {
             let mut random_index = rng.gen_range(0..self.input.get_machine_count());
 
             let mut fails: usize = 0;
-            while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > self.upper_bound {
+            while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
                 fails += 1;
                 if fails == fails_until_check {
-                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= self.upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten)
+                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten)
                         fails = 0;
                     } else {
-                        println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", self.upper_bound, RF);
+                        println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF);
                         return Solution::unsatisfiable(RF);
                     }
                 }
@@ -69,7 +61,6 @@ impl RFScheduler {
 
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
-
-        Solution::new(RF, machine_jobs, self.input.get_jobs())
+        Solution::new(RF, machine_jobs, self.input.get_jobs() ,Arc::clone(&self.global_bounds))
     }
 }
