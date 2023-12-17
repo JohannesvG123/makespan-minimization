@@ -109,11 +109,10 @@ fn main() {
             s.get_mut_data().unsort(perm);
             output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
             //
-            good_solutions.lock().unwrap().add_solution(solution); //todo diesen call in extra methode schieben damit mutex unlockt? evtl
+            good_solutions.lock().unwrap().add_solution(solution); //Todo diesen call in extra methode schieben damit mutex unlockt? evtl (ohne let definition unlockt der direkt wieder oder)
         });
     }
 
     sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden? -> handles halten und joinen oder mit synchronisationsmechanismus
-    println!("{:?}", good_solutions.lock().unwrap().);//TODO dasimma als nöchstes muss man testen
 }
 

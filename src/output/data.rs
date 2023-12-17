@@ -5,7 +5,7 @@ use permutation::Permutation;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::schedule::Schedule;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Eq, PartialEq)]
 pub struct Data {
     c_max: u32,
     schedule: Schedule,

@@ -3,11 +3,10 @@ use std::sync::{Arc, Mutex};
 use crate::output::solution::Solution;
 
 /// Sorted (by c_max) List of the best Solutions
+#[derive(Debug)]
 pub struct GoodSolutions {
-    //TODO 1 fertig implementieren
-    //todo struct selber wird in nem arc mutex gehalten und jede solution kann als arc mutzex geholt werden
     solutions: Vec<(u32, Arc<Mutex<Solution>>)>,
-    //TODO Frage: funktioniert das so wie ich mir das vorstelle? mit den mutexes
+    //TODO Frage: funktioniert das so wie ich mir das vorstelle? mit den "doppel-mutexes"?
     //(c_max1,solution1),(c_max2,solution2)...
     max_capacity: usize,
 }
@@ -22,8 +21,10 @@ impl GoodSolutions {
     pub fn add_solution(&mut self, new_solution: Solution) {
         let new_c_max = new_solution.get_data().get_c_max();
         match self.solutions.binary_search_by_key(&new_c_max, |&(c_max, _)| c_max) {
-            Ok(pos) => { // element already in vector
-                //TODO in dem Fall prüfen ob die solutions gleich sind und dann ggf die neue solution rein schieben     (mit unterscheidung analog wie im Err Fall)
+            Ok(pos) => { // element with same c_max already in vector
+                if *self.solutions[pos].1.lock().unwrap() != new_solution { //if new_solution is a different solution than the old one
+                    self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
+                }
             }
             Err(pos) => {
                 self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));

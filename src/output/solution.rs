@@ -7,7 +7,7 @@ use crate::global_bounds::update_upper_bound;
 use crate::output::data::Data;
 use crate::output::machine_jobs::MachineJobs;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Eq,PartialEq)]
 pub struct Solution {
     satisfiable: bool,
     used_algorithm: Algorithm,
