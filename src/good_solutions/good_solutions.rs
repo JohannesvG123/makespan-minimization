@@ -35,8 +35,8 @@ impl GoodSolutions {
         }
     }
 
-    pub fn get_best_solution(&self) {
-        self.get_solution(0);
+    pub fn get_best_solution(&self) -> Arc<Mutex<Solution>> {
+        self.get_solution(0)
     }
 
     pub fn get_solution(&self, index: usize) -> Arc<Mutex<Solution>> {
@@ -45,6 +45,10 @@ impl GoodSolutions {
     }
 
     pub fn get_best_solution_count(&self) -> usize {
+        self.solutions.len()
+    }
+
+    pub fn get_solution_count(&self) -> usize {
         self.solutions.len()
     }
 

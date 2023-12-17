@@ -5,7 +5,7 @@ use permutation::Permutation;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::schedule::Schedule;
 
-#[derive(Debug,Clone,Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Data {
     c_max: u32,
     schedule: Schedule,
@@ -26,6 +26,10 @@ impl Data {
     pub fn get_machine_jobs(&self) -> &MachineJobs {
         &self.machine_jobs
     }
+    pub fn get_mut_machine_jobs(&mut self) -> &mut MachineJobs {
+        &mut self.machine_jobs
+    }
+
 
     pub fn unsort_inplace(&mut self, permutation: &mut Permutation) {
         permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
