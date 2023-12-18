@@ -44,7 +44,7 @@ impl Data {
     }
 
     pub fn unsort(&mut self, permutation: Arc<Permutation>) {
-        self.schedule = Schedule::new(permutation.apply_slice(self.schedule.as_slice()));
+        self.schedule = Schedule::new(permutation.apply_inv_slice(self.schedule.as_slice()));
         //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
     }
 }

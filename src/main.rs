@@ -3,7 +3,6 @@ use std::hash::Hash;
 use std::ops::{DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread::sleep;
 use std::time::Duration;
 
