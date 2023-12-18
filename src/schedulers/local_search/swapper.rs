@@ -41,12 +41,25 @@ impl Swapper {
             sleep(Duration::from_millis(10));
         }
 
-        //momentan mit der besten lsg
-        self.swap_tactic_1(self.good_solutions.lock().unwrap().get_best_solution().lock().unwrap().clone()) //clone weil wir neue solution erzeugen
+        //momentan mit der schlechtesten besten lsg -> todo 1 einstellbar machen
+        let i = self.good_solutions.lock().unwrap().get_solution_count() - 1;
+        let mut current_solution = self.good_solutions.lock().unwrap().get_solution(i).lock().unwrap().clone();
+
+        loop {
+            println!("curr c_max={}", current_solution.get_data().get_c_max());
+            let new_solution = self.swap_tactic_1(&current_solution);
+            if new_solution.is_satisfiable() {
+                current_solution = new_solution;
+            } else {
+                return current_solution;
+            }
+        }
     }
 
     /// brute force (try all possible swaps)
-    fn swap_tactic_1(&self, mut solution: Solution) -> Solution { //TODO solution.algorithm als vec arg machen damit man hier swap hinzufügen kann
+    fn swap_tactic_1(&self, mut solution: &Solution) -> Solution { //TODO solution.algorithm als vec arg machen damit man hier swap hinzufügen kann
+        let mut solution = solution.clone();
+
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();
         let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
