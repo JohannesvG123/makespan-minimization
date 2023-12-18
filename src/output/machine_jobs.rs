@@ -1,6 +1,6 @@
 use crate::output::schedule::Schedule;
 
-#[derive(Debug,Clone,Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 ///<(machine0_workload,<machine0_job_numbers...>),...>
 pub struct MachineJobs(Vec<(u32, Vec<usize>)>);
 
@@ -35,15 +35,35 @@ impl MachineJobs {
 
     pub fn get_c_max(&self) -> u32 {
         let mut c_max = 0;
-        for &(machine_worload, _) in self.0.iter() {
-            if machine_worload > c_max {
-                c_max = machine_worload;
+        for &(machine_workload, _) in self.0.iter() {
+            if machine_workload > c_max {
+                c_max = machine_workload;
             }
         }
         c_max
     }
 
+    pub fn get_machines_with_workload(&self, workload: u32) -> Vec<usize> {
+        let mut heaviest_machines = vec![];
+        for i in 0..self.0.len() {
+            if self.0[i].0 == workload {
+                heaviest_machines.push(i);
+            }
+        }
+        heaviest_machines
+    }
+
     pub fn calculate_schedule(&self, jobs: &[u32]) -> Schedule {
         Schedule::from_machine_jobs(&self, jobs, self.0.len())
+    }
+
+    ///job indices on the current machine - NOT general job index
+    pub fn swap_jobs(&mut self, machine_1_index: usize, job_1_index_on_machine: usize, machine_2_index: usize, job_2_index_on_machine: usize, jobs: &[u32]) {
+        let job_1_index = self.0[machine_1_index].1[job_1_index_on_machine];
+        let job_2_index = self.0[machine_2_index].1[job_2_index_on_machine];
+        self.0[machine_1_index].0 = self.0[machine_1_index].0 + jobs[job_2_index] - jobs[job_1_index];
+        self.0[machine_2_index].0 = self.0[machine_2_index].0 + jobs[job_1_index] - jobs[job_2_index];
+        self.0[machine_1_index].1[job_1_index_on_machine] = job_2_index;
+        self.0[machine_2_index].1[job_2_index_on_machine] = job_1_index;
     }
 }

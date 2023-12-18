@@ -30,6 +30,13 @@ impl Data {
         &mut self.machine_jobs
     }
 
+    ///job_1_index_on_machine means the index of job1 on its current machine (in MachineJobs)
+    pub fn swap_jobs(&mut self, machine_1_index: usize, job_1_index_on_machine: usize, machine_2_index: usize, job_2_index_on_machine: usize, jobs: &[u32], machine_count: usize) {
+        self.machine_jobs.swap_jobs(machine_1_index, job_1_index_on_machine, machine_2_index, job_2_index_on_machine, jobs);
+        //TODO Schedule.swap statt neuberechnung:
+        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);
+        self.c_max = self.machine_jobs.get_c_max();
+    }
 
     pub fn unsort_inplace(&mut self, permutation: &mut Permutation) {
         permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());

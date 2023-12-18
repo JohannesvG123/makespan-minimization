@@ -3,6 +3,7 @@ use std::hash::Hash;
 use std::ops::{DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -111,13 +112,16 @@ fn main() {
             let mut solution = scheduler.schedule();
             //ausgabe
             let mut s = solution.clone();
-            s.get_mut_data().unsort(perm);
+            if s.is_satisfiable() {
+                s.get_mut_data().unsort(perm);
+            }
             output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
             //
-            good_solutions.lock().unwrap().add_solution(solution); //Todo diesen call in extra methode schieben damit mutex unlockt? evtl (ohne let definition unlockt der direkt wieder oder)
+            good_solutions.lock().unwrap().add_solution(solution);
         });
     }
 
     sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden? -> handles halten und joinen oder mit synchronisationsmechanismus
+    //so zb... aber geht das nicht schöner? https://stackoverflow.com/questions/44916445/how-can-i-wait-for-an-unknown-number-of-rust-threads-to-complete-without-using-t
 }
 

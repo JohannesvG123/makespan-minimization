@@ -19,19 +19,21 @@ impl GoodSolutions {
 
     ///adds solution if it is better than the current best solutions
     pub fn add_solution(&mut self, new_solution: Solution) {
-        let new_c_max = new_solution.get_data().get_c_max();
-        match self.solutions.binary_search_by_key(&new_c_max, |&(c_max, _)| c_max) {
-            Ok(pos) => { // element with same c_max already in vector
-                if *self.solutions[pos].1.lock().unwrap() != new_solution { //if new_solution is a different solution than the old one
+        if new_solution.is_satisfiable() {
+            let new_c_max = new_solution.get_data().get_c_max();
+            match self.solutions.binary_search_by_key(&new_c_max, |&(c_max, _)| c_max) {
+                Ok(pos) => { // element with same c_max already in vector
+                    if *self.solutions[pos].1.lock().unwrap() != new_solution { //if new_solution is a different solution than the old one
+                        self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
+                    }
+                }
+                Err(pos) => {
                     self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
                 }
             }
-            Err(pos) => {
-                self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
+            if self.solutions.len() == self.max_capacity { //eine alte solution wird verdrängt
+                self.solutions.pop();
             }
-        }
-        if self.solutions.len() == self.max_capacity { //eine alte solution wird verdrängt
-            self.solutions.pop();
         }
     }
 
