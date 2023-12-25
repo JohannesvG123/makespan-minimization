@@ -52,6 +52,9 @@ struct Args {
     #[arg(short, long, num_args = 1..,)]
     algos: Vec<Algorithm>,
 
+    #[arg(short = 't', long)]
+    num_threads: usize,
+
 }
 
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
@@ -94,7 +97,7 @@ fn main() {
     let input = sorted_input.get_input();
     let mut perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
 
-    let thread_pool = rayon::ThreadPoolBuilder::new().build().unwrap();
+    let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
     let global_bounds = create_global_bounds(Arc::clone(&input));
     let good_solutions = create_good_solutions(20);
 
