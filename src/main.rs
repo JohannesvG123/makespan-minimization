@@ -101,29 +101,29 @@ fn main() {
     let global_bounds = create_global_bounds(Arc::clone(&input));
     let good_solutions = create_good_solutions(20);
 
-    for algorithm in args.algos.iter() {
-        let input = Arc::clone(&input); //TODO alles inline am ende
-        let perm = Arc::clone(&perm);
-        let algo = algorithm.clone();
-        let args = Arc::clone(&args);
-        let global_bounds = Arc::clone(&global_bounds);
-        let good_solutions = Arc::clone(&good_solutions);
+    thread_pool.scope(move |scope| {
+        for algorithm in args.algos.iter() {
+            println!("{}", algorithm);
+            let input = Arc::clone(&input); //TODO alles inline am ende und überprüfen ob immer Arc usw nötig ist
+            let perm = Arc::clone(&perm);
+            let algorithm = algorithm.clone();
+            let args = Arc::clone(&args);
+            let global_bounds = Arc::clone(&global_bounds);
+            let good_solutions = Arc::clone(&good_solutions);
 
-        thread_pool.spawn(move || {
-            let mut scheduler = algorithm_map[algo](input, global_bounds, Arc::clone(&good_solutions));
-            let mut solution = scheduler.schedule();
-            //ausgabe
-            let mut s = solution.clone();
-            if s.is_satisfiable() {
-                s.get_mut_data().unsort(perm);
-            }
-            output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
-            //
-            good_solutions.lock().unwrap().add_solution(solution);
-        });
-    }
-
-    sleep(Duration::from_secs(3)); //Todo wie warte ich drauf dass die threads fertig werden? -> handles halten und joinen oder mit synchronisationsmechanismus
-    //so zb... aber geht das nicht schöner? https://stackoverflow.com/questions/44916445/how-can-i-wait-for-an-unknown-number-of-rust-threads-to-complete-without-using-t
+            scope.spawn(move |_| {
+                let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&good_solutions));
+                let mut solution = scheduler.schedule();
+                //ausgabe
+                let mut s = solution.clone();
+                if s.is_satisfiable() {
+                    s.get_mut_data().unsort(perm);
+                }
+                output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
+                //
+                good_solutions.lock().unwrap().add_solution(solution);
+            });
+        }
+    });
 }
 
