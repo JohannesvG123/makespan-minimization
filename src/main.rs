@@ -3,8 +3,6 @@ use std::hash::Hash;
 use std::ops::{DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use std::time::Duration;
 
 use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
@@ -12,7 +10,6 @@ use rand::Rng;
 use rayon::prelude::*;
 
 use crate::global_bounds::bounds::Bounds;
-use crate::global_bounds::create_global_bounds;
 use crate::good_solutions::create_good_solutions;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::get_input;
@@ -53,8 +50,7 @@ struct Args {
     algos: Vec<Algorithm>,
 
     #[arg(short = 't', long)]
-    num_threads: usize,
-
+    num_threads: usize, //TODO add default
 }
 
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
@@ -81,13 +77,13 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Mutex<Bounds>>, Arc<Mutex<GoodSolutions>>) -> Box<dyn Scheduler + Send>> = enum_map! {
-        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,_| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,_| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,_| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,_| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,_| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Mutex<Bounds>>,good_solutions: Arc<Mutex<GoodSolutions>>| Box::new(Swapper::new(input,global_bounds,good_solutions))as Box<dyn Scheduler + Send>,
+    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Mutex<GoodSolutions>>) -> Box<dyn Scheduler + Send>> = enum_map! {
+        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>,good_solutions: Arc<Mutex<GoodSolutions>>| Box::new(Swapper::new(input,global_bounds,good_solutions))as Box<dyn Scheduler + Send>,
     };
 
     //start:
@@ -98,7 +94,7 @@ fn main() {
     let mut perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
 
     let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
-    let global_bounds = create_global_bounds(Arc::clone(&input));
+    let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
     let good_solutions = create_good_solutions(20);
 
     thread_pool.scope(move |scope| {

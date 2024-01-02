@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::Algorithm;
 use crate::Algorithm::BF;
@@ -10,7 +10,7 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct BFScheduler {
     input: Arc<Input>,
-    global_bounds: Arc<Mutex<Bounds>>,
+    global_bounds: Arc<Bounds>,
 }
 
 impl Scheduler for BFScheduler {
@@ -24,7 +24,7 @@ impl Scheduler for BFScheduler {
 }
 
 impl BFScheduler {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>) -> Self {
         Self { input, global_bounds }
     }
 
@@ -32,7 +32,7 @@ impl BFScheduler {
     pub fn best_fit(&self) -> Solution {
         println!("running {:?} algorithm...", BF);
 
-        let (upper_bound, lower_bound) = self.global_bounds.lock().unwrap().get_bounds();
+        let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 
@@ -57,6 +57,6 @@ impl BFScheduler {
             machine_jobs.assign_job(jobs[job_index], best_machine, job_index);
         }
 
-        Solution::new(BF, machine_jobs, self.input.get_jobs() ,Arc::clone(&self.global_bounds))
+        Solution::new(BF, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

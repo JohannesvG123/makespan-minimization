@@ -1,13 +1,12 @@
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::Algorithm;
 use crate::global_bounds::bounds::Bounds;
-use crate::global_bounds::update_upper_bound;
 use crate::output::data::Data;
 use crate::output::machine_jobs::MachineJobs;
 
-#[derive(Debug,Clone,Eq,PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Solution {
     satisfiable: bool,
     used_algorithm: Algorithm,
@@ -16,13 +15,13 @@ pub struct Solution {
 
 impl Solution {
     /// creates a new solution, calculates the Schedule and updates the global upper bound //TODO FRAGE is die funktionalität so smart? wsh ausprobieren oder?
-    pub fn new(used_algorithm: Algorithm, machine_jobs: MachineJobs, jobs: &[u32], global_bounds: Arc<Mutex<Bounds>>) -> Self {//TODO (low prio) schedule nur on demand ausrechnen
+    pub fn new(used_algorithm: Algorithm, machine_jobs: MachineJobs, jobs: &[u32], global_bounds: Arc<Bounds>) -> Self {//TODO (low prio) schedule nur on demand ausrechnen
         let solution = Self {
             satisfiable: true,
             used_algorithm,
             data: Some(Data::new(machine_jobs.get_c_max(), machine_jobs.calculate_schedule(jobs), machine_jobs)),
         };
-        update_upper_bound(global_bounds, solution.get_data().get_c_max());
+        global_bounds.update_upper_bound(solution.get_data().get_c_max());
         solution
     }
 

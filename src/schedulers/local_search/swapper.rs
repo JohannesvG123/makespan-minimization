@@ -14,7 +14,7 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct Swapper {
     input: Arc<Input>,
-    global_bounds: Arc<Mutex<Bounds>>,
+    global_bounds: Arc<Bounds>,
     good_solutions: Arc<Mutex<GoodSolutions>>,
 }
 
@@ -29,7 +29,7 @@ impl Scheduler for Swapper {
 }
 
 impl Swapper {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>, good_solutions: Arc<Mutex<GoodSolutions>>) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, good_solutions: Arc<Mutex<GoodSolutions>>) -> Self {
         Self { input, global_bounds, good_solutions }
     }
 

@@ -10,7 +10,7 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct LPTScheduler {
     input: Arc<Input>,
-    global_bounds: Arc<Mutex<Bounds>>,
+    global_bounds: Arc<Bounds>,
 }
 
 impl Scheduler for LPTScheduler {
@@ -24,7 +24,7 @@ impl Scheduler for LPTScheduler {
 }
 
 impl LPTScheduler {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>) -> Self {
         Self { input, global_bounds }
     }
 
@@ -32,7 +32,7 @@ impl LPTScheduler {
     fn longest_processing_time(&self) -> Solution {
         println!("running {:?} algorithm...", LPT);
 
-        let (upper_bound, lower_bound) = self.global_bounds.lock().unwrap().get_bounds();
+        let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 

@@ -10,7 +10,7 @@ use crate::schedulers::scheduler::Scheduler;
 
 pub struct RRScheduler {
     input: Arc<Input>,
-    global_bounds: Arc<Mutex<Bounds>>,
+    global_bounds: Arc<Bounds>,
 }
 
 impl Scheduler for RRScheduler {
@@ -24,7 +24,7 @@ impl Scheduler for RRScheduler {
 }
 
 impl RRScheduler {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Mutex<Bounds>>) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>) -> Self {
         Self { input, global_bounds }
     }
 
@@ -32,7 +32,7 @@ impl RRScheduler {
     pub fn round_robin(&self) -> Solution {
         println!("running {:?} algorithm...", RR);
 
-        let (upper_bound, lower_bound) = self.global_bounds.lock().unwrap().get_bounds();
+        let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 
