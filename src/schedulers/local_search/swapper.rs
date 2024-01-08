@@ -68,15 +68,18 @@ impl Swapper {
 
         for m1 in 0..self.input.get_machine_count() {
             for m2 in m1..self.input.get_machine_count() { //for all machine pairs {m1,m2}
-                let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
-                let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
-                for j1 in 0..machine_1_jobs.len() {
-                    for j2 in 0..machine_2_jobs.len() { //for all job pairs (j1,j2) on (m1,m2)
-                        let new_c_max = self.simulate_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
-                        if new_c_max < current_c_max {
-                            swap_found = true;
-                            current_c_max = new_c_max;
-                            swap_indices = (m1, j1, m2, j2);
+                if current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2) { //todo low prio weitere einschränkungen wie zb current_heaviest_machines.len() = 1/2 oder so(?)
+                    //only in this case we can improve our c_max
+                    let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
+                    let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
+                    for j1 in 0..machine_1_jobs.len() {
+                        for j2 in 0..machine_2_jobs.len() { //for all job pairs (j1,j2) on (m1,m2)
+                            let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
+                            if swap_accepted(new_c_max, current_c_max) {
+                                swap_found = true;
+                                current_c_max = new_c_max;
+                                swap_indices = (m1, j1, m2, j2);
+                            }
                         }
                     }
                 }
