@@ -34,6 +34,7 @@ impl Scheduler for Swapper {
 }
 
 ///Tactic to find jobs to swap
+#[derive(Clone, Copy)]
 pub enum SwapTactic {
     TwoJobBruteForce,
     TwoJobRandomSwap,
@@ -75,19 +76,29 @@ impl Swapper {
         while self.good_solutions.lock().unwrap().get_solution_count() < range.end { //todo active waiting vllt mit thread_pool.yield oder soo(?)
             sleep(Duration::from_millis(10));
         }
-        let mut solutions = self.good_solutions.lock().unwrap().get_cloned_solutions(range);
+        //let mut solutions = self.good_solutions.lock().unwrap().get_cloned_solutions(range);
 
-        //do the swapping:
-        for i in 0..solutions.len() { //TODO PRIO jewils parallel in eigenem thread starten (scope.spwan...)
-            loop { //TODO params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net
-                println!("(todo schöner loggen)curr c_max={}", solutions[i].get_data().get_c_max());
-                let new_solution = swap(solutions[i].clone(), swap_accepted); //TODO hier das clone evtl vermeiden(?)
-                if !new_solution.is_satisfiable() { break; } // did not find a swap
-                solutions[i] = new_solution;
+        rayon::scope(|s| {
+            for i in range {
+                s.spawn(move |_| {
+                    let binding = self.good_solutions.lock().unwrap().get_solution(i);
+                    let mut solution = binding.lock().unwrap();
+                    loop { //TODO params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net
+                        println!("(todo schöner loggen)curr c_max={}", solution.get_data().get_c_max());
+                        //todo noch bissel unschön mit match hier aber das funzt leider net (let new_solution = swap(solution.clone(), swap_accepted);)
+                        let new_solution = match swap_tactic {
+                            TwoJobBruteForce => { self.two_job_brute_force(solution.clone(), swap_accepted) }
+                            TwoJobRandomSwap => { self.two_job_random_swap(solution.clone(), swap_accepted) }
+                            SwapTactic::Todo => { todo!() }
+                        };
+                        if !new_solution.is_satisfiable() { break; } // did not find a swap
+                        *solution = new_solution;
+                    }
+                });
             }
-        }
+        });
 
-        solutions.pop().unwrap() //TODO rückgabe zu vec<solution> umbauen und alle ausgeben
+        Solution::unsatisfiable(Swap) //TODO rückgabe zu vec<solution> umbauen und alle ausgeben
     }
 
     /// 2 job swap brute force (try all possible swaps)
