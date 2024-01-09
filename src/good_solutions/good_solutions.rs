@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::sync::{Arc, Mutex};
 
 use crate::output::solution::Solution;
@@ -39,6 +40,14 @@ impl GoodSolutions {
 
     pub fn get_best_solution(&self) -> Arc<Mutex<Solution>> {
         self.get_solution(0)
+    }
+
+    pub fn get_cloned_solutions(&self, range: Range<usize>) -> Vec<Solution> { //TODO versionen mit und ohne copy impl und überall richtiges verwenden
+        let mut o = vec![];
+        for i in range {
+            o.push(self.get_solution(i).lock().unwrap().clone());
+        }
+        o
     }
 
     pub fn get_solution(&self, index: usize) -> Arc<Mutex<Solution>> {
