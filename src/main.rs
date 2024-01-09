@@ -8,7 +8,6 @@ use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
 use rand::Rng;
 use rayon::prelude::*;
-use rayon::spawn;
 
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::create_good_solutions;

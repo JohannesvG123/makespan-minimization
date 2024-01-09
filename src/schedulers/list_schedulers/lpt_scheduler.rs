@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::Algorithm;
 use crate::Algorithm::LPT;
@@ -63,6 +63,6 @@ impl LPTScheduler {
             }
         }
 
-        Solution::new(LPT, machine_jobs, self.input.get_jobs() ,Arc::clone(&self.global_bounds))
+        Solution::new(LPT, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

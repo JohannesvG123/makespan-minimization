@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use rand::Rng;
 
@@ -61,6 +61,6 @@ impl RFScheduler {
 
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
-        Solution::new(RF, machine_jobs, self.input.get_jobs() ,Arc::clone(&self.global_bounds))
+        Solution::new(RF, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }
