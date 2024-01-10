@@ -4,7 +4,7 @@ use std::ops::{DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use clap::{arg, Parser, ValueEnum};
+use clap::{arg, Parser, Subcommand, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
 use rand::Rng;
 use rayon::prelude::*;
@@ -20,7 +20,9 @@ use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
 use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
 use crate::schedulers::list_schedulers::rf_scheduler::RFScheduler;
 use crate::schedulers::list_schedulers::rr_scheduler::RRScheduler;
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::Improvement;
 use crate::schedulers::local_search::swapper::Swapper;
+use crate::schedulers::local_search::swapper::SwapTactic::TwoJobBruteForce;
 use crate::schedulers::scheduler::Scheduler;
 
 mod input;
@@ -66,7 +68,7 @@ pub enum Algorithm {
     /// RF (Random Fit)
     RF,
     /// Swap (local search approach)
-    Swap,
+    Swap, //TODO https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen
 }
 
 impl fmt::Display for Algorithm {
@@ -83,7 +85,7 @@ fn main() {
         Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>,good_solutions: Arc<Mutex<GoodSolutions>>| Box::new(Swapper::new(input,global_bounds,good_solutions))as Box<dyn Scheduler + Send>,
+        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>,good_solutions: Arc<Mutex<GoodSolutions>>| Box::new(Swapper::new(input,global_bounds,good_solutions, TwoJobBruteForce, Improvement,3..5))as Box<dyn Scheduler + Send>,
     };
 
     //start:

@@ -13,7 +13,7 @@ use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::local_search::swapper::SwapAcceptanceRule::Improvement;
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{Improvement, Random};
 use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
 
@@ -21,11 +21,14 @@ pub struct Swapper {
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
     good_solutions: Arc<Mutex<GoodSolutions>>,
+    swap_tactic: fn(&Swapper, Solution) -> Solution,
+    swap_acceptance_rule: fn(u32, u32) -> bool,
+    range: Range<usize>,
 }
 
 impl Scheduler for Swapper {
     fn schedule(&mut self) -> Solution {
-        self.swap(4..5, TwoJobRandomSwap, Improvement) //TODO PRIO als args in main iwi aufnehmen wsh am smartesten über Swap::new() übergeben ig
+        self.swap()
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -38,71 +41,82 @@ impl Scheduler for Swapper {
 pub enum SwapTactic {
     TwoJobBruteForce,
     TwoJobRandomSwap,
-    Todo, //TODO weitere tactics... "XJobTacticY" zb random swap
+    Todo,
 }
 
 ///Rule when to accept a swap
 #[derive(Clone)]
 pub enum SwapAcceptanceRule {
     Improvement,
-    Todo, //TODO weitere rules zb rand possibility bad swap / slightly bad swap +mischungen
+    Random,
+    Todo,
 }
 
 impl Swapper {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, good_solutions: Arc<Mutex<GoodSolutions>>) -> Self {
-        Self { input, global_bounds, good_solutions }
-    }
-
-    /// swaps jobs of on given schedule(s) to create better one(s)
-    /// volume = amount of jobs to be swapped
-    /// range = which schedules to pick from the currently best ones
-    /// todo
-    pub fn swap(&self, range: Range<usize>, swap_tactic: SwapTactic, swap_acceptance_rule: SwapAcceptanceRule) -> Solution { //TODO alles ausführlich testen (va. die methode hier)
-        println!("running {:?} algorithm...", Swap); //todo (low prio) das kann man raus ziehen
-
-        //New SwapTactics can be added here
-        let swap: Box<dyn Fn(Solution, fn(u32, u32) -> bool) -> Solution> = match swap_tactic {
-            TwoJobBruteForce => Box::new(|solution, swap_accepted| self.two_job_brute_force(solution, swap_accepted)),
-            TwoJobRandomSwap => Box::new(|solution, swap_accepted| self.two_job_random_swap(solution, swap_accepted)),
-            SwapTactic::Todo => todo!(),
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, good_solutions: Arc<Mutex<GoodSolutions>>, swap_tactic: SwapTactic, swap_acceptance_rule: SwapAcceptanceRule, range: Range<usize>) -> Self {
+        //new swap tactics can be added here:
+        let swap_tactic_fn = match swap_tactic {
+            TwoJobBruteForce => { Self::two_job_brute_force }
+            TwoJobRandomSwap => { Self::two_job_random_swap }
+            SwapTactic::Todo => { todo!() }
         };
-        //New SwapAcceptanceRules can be added here
-        let swap_accepted = match swap_acceptance_rule { //todo (low prio) in extra methoden auslagern
+
+        //new swap acceptance rules can be added here:
+        let swap_acceptance_rule_fn = match swap_acceptance_rule { //todo (low prio) in methoden auslagern
             Improvement => { |old_c_max: u32, new_c_max: u32| new_c_max > old_c_max }
+            Random => {
+                |old_c_max: u32, new_c_max: u32| {
+                    let mut rng = rand::thread_rng();
+                    rng.gen_bool(0.5)
+                }
+            }
             SwapAcceptanceRule::Todo => { todo!() }
         };
 
+        Self { input, global_bounds, good_solutions, swap_tactic: swap_tactic_fn, swap_acceptance_rule: swap_acceptance_rule_fn, range }
+    }
+
+    /// swaps jobs of on given schedule(s) to create better one(s)
+    /// range = which schedules to pick from the currently best ones
+    pub fn swap(&self) -> Solution {
+        println!("running {:?} algorithm...", Swap); //todo (low prio) das kann man raus ziehen
+
+        let range = self.range.clone();//TODO (low prio) unten direkt self. verwenden
+
         //get solutions:
-        while self.good_solutions.lock().unwrap().get_solution_count() < range.end { //todo active waiting vllt mit thread_pool.yield oder soo(?)
+        while self.good_solutions.lock().unwrap().get_solution_count() < range.end {
             sleep(Duration::from_millis(10));
+            //todo (low prio) logging was passiert und iwan abbruch
         }
         //let mut solutions = self.good_solutions.lock().unwrap().get_cloned_solutions(range);
-
+        let tmp_todo = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         rayon::scope(|s| {
             for i in range {
+                let tmp_todo = Arc::clone(&tmp_todo);
                 s.spawn(move |_| {
                     let binding = self.good_solutions.lock().unwrap().get_solution(i);
                     let mut solution = binding.lock().unwrap();
-                    loop { //TODO params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net
+                    loop { //TODO (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
                         println!("(todo schöner loggen)curr c_max={}", solution.get_data().get_c_max());
-                        //todo noch bissel unschön mit match hier aber das funzt leider net (let new_solution = swap(solution.clone(), swap_accepted);)
-                        let new_solution = match swap_tactic {
-                            TwoJobBruteForce => { self.two_job_brute_force(solution.clone(), swap_accepted) }
-                            TwoJobRandomSwap => { self.two_job_random_swap(solution.clone(), swap_accepted) }
-                            SwapTactic::Todo => { todo!() }
-                        };
-                        if !new_solution.is_satisfiable() { break; } // did not find a swap
-                        *solution = new_solution;
+                        let mut new_solution = (self.swap_tactic)(self, solution.clone());
+                        if !new_solution.is_satisfiable() {// did not find a swap:
+                            break;
+                        }
+                        new_solution.add_algorithm(Swap);
+
+                        *solution = new_solution; //TODO (wenn good solutions gescheit gemacht) ist hier solution entweder ändern oder neu speichern (eher das zweite)
                     }
+                    let mut b = tmp_todo.lock().unwrap(); //todo (low prio) todo dings weg wenn good solutions steht
+                    *b = solution.clone();
                 });
             }
         });
 
-        Solution::unsatisfiable(Swap) //TODO rückgabe zu vec<solution> umbauen und alle ausgeben
+        Arc::into_inner(tmp_todo).unwrap().into_inner().unwrap() //TODO (wenn good solutions gescheit gemacht ist) rückgabe zu vec<solution> umbauen und alle ausgeben
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    fn two_job_brute_force(&self, mut solution: Solution, swap_accepted: fn(u32, u32) -> bool) -> Solution { //TODO solution.algorithm als vec arg machen damit man hier swap hinzufügen kann
+    fn two_job_brute_force(&self, mut solution: Solution) -> Solution {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();
         let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
@@ -111,14 +125,14 @@ impl Swapper {
 
         for m1 in 0..self.input.get_machine_count() {
             for m2 in m1..self.input.get_machine_count() { //for all machine pairs {m1,m2}
-                if current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2) { //todo low prio weitere einschränkungen wie zb current_heaviest_machines.len() = 1/2 oder so(?)
+                if current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2) { //todo (low prio) weitere einschränkungen wie zb current_heaviest_machines.len() = 1/2 oder so(?)
                     //only in this case we can improve our c_max
                     let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
                     let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
                     for j1 in 0..machine_1_jobs.len() {
                         for j2 in 0..machine_2_jobs.len() { //for all job pairs (j1,j2) on (m1,m2)
                             let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
-                            if swap_accepted(new_c_max, current_c_max) {
+                            if (self.swap_acceptance_rule)(new_c_max, current_c_max) {
                                 swap_found = true;
                                 current_c_max = new_c_max;
                                 swap_indices = (m1, j1, m2, j2);
@@ -138,7 +152,7 @@ impl Swapper {
     }
 
     /// 2 job random swap
-    fn two_job_random_swap(&self, mut solution: Solution, swap_accepted: fn(u32, u32) -> bool) -> Solution {
+    fn two_job_random_swap(&self, mut solution: Solution) -> Solution {
         let mut rng = rand::thread_rng();
         let mut fails: u8 = 0;
 
@@ -166,12 +180,12 @@ impl Swapper {
 
             //actual swap
             let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
-            if swap_accepted(new_c_max, current_c_max) {
+            if (self.swap_acceptance_rule)(new_c_max, current_c_max) {
                 solution.get_mut_data().swap_jobs(m1, j1, m2, j2, self.input.get_jobs(), self.input.get_machine_count());
                 return solution;
             } else {
                 fails += 1;
-                if fails == 50 {
+                if fails == 50 {//todo (low prio) logging
                     return Solution::unsatisfiable(Swap);
                 }
             }
