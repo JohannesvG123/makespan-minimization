@@ -86,7 +86,7 @@ impl Swapper {
     }
 
     fn accept_improvement(old_c_max: u32, new_c_max: u32) -> bool {
-        new_c_max < old_c_max
+        new_c_max > old_c_max
     }
 
     fn accept_decline_chance_tmp(old_c_max: u32, new_c_max: u32) -> bool {
