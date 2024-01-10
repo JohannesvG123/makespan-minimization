@@ -13,11 +13,12 @@ use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{Improvement, Random};
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, ChanceDecline, Improvement};
 use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct Swapper {
+    //TODO UB immer aktualisieren
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
     good_solutions: Arc<Mutex<GoodSolutions>>,
@@ -47,9 +48,22 @@ pub enum SwapTactic {
 ///Rule when to accept a swap
 #[derive(Clone)]
 pub enum SwapAcceptanceRule {
+    ///accept swap if it improves c_max
     Improvement,
-    Random,
-    Todo,
+    ///accept improvements & declines with a p-percent chance
+    ChanceDecline,
+    //(f64)
+
+    //accept improvements & x-percent declines TODO die alle implementieren
+    //SmallDecline, //(f64)
+
+    //accept improvements & x-percent declines with a p-percent chance
+    //SmallAndChanceDecline, //(f64,f64)
+
+    //accept improvements & x-percent declines with a p-percent chance (smaller decline => higher chance; bigger decline => smaller chance)
+    //WeightedDecline, //(f64,f64)
+    ///accept all swaps independent of c_max
+    All,
 }
 
 impl Swapper {
@@ -62,36 +76,52 @@ impl Swapper {
         };
 
         //new swap acceptance rules can be added here:
-        let swap_acceptance_rule_fn = match swap_acceptance_rule { //todo (low prio) in methoden auslagern
-            Improvement => { |old_c_max: u32, new_c_max: u32| new_c_max > old_c_max }
-            Random => {
-                |old_c_max: u32, new_c_max: u32| {
-                    let mut rng = rand::thread_rng();
-                    rng.gen_bool(0.5)
-                }
-            }
-            SwapAcceptanceRule::Todo => { todo!() }
+        let swap_acceptance_rule_fn = match swap_acceptance_rule {
+            Improvement => { Self::accept_improvement }
+            ChanceDecline => { Self::accept_decline_chance_tmp }
+            All => { Self::accept_all }
         };
 
         Self { input, global_bounds, good_solutions, swap_tactic: swap_tactic_fn, swap_acceptance_rule: swap_acceptance_rule_fn, range }
     }
 
+    fn accept_improvement(old_c_max: u32, new_c_max: u32) -> bool {
+        new_c_max < old_c_max
+    }
+
+    fn accept_decline_chance_tmp(old_c_max: u32, new_c_max: u32) -> bool {
+        Self::accept_decline_chance(old_c_max, new_c_max, 0.1)
+    }
+    fn accept_decline_chance(old_c_max: u32, new_c_max: u32, percentage: f64) -> bool {//TODO find out how to use this with DeclineChance(percentage) => dafür Unterschied closure/fn/Fn usw anschauen
+        debug_assert!(0f64 <= percentage);
+        debug_assert!(1f64 >= percentage);
+
+        if new_c_max > old_c_max {
+            true
+        } else {
+            let mut rng = rand::thread_rng();
+            rng.gen_bool(percentage)
+        }
+    }
+
+    fn accept_all(old_c_max: u32, new_c_max: u32) -> bool {
+        true
+    }
+
     /// swaps jobs of on given schedule(s) to create better one(s)
     /// range = which schedules to pick from the currently best ones
-    pub fn swap(&self) -> Solution {
+    fn swap(&self) -> Solution {
         println!("running {:?} algorithm...", Swap); //todo (low prio) das kann man raus ziehen
 
-        let range = self.range.clone();//TODO (low prio) unten direkt self. verwenden
-
         //get solutions:
-        while self.good_solutions.lock().unwrap().get_solution_count() < range.end {
+        while self.good_solutions.lock().unwrap().get_solution_count() < self.range.end {
             sleep(Duration::from_millis(10));
             //todo (low prio) logging was passiert und iwan abbruch
         }
         //let mut solutions = self.good_solutions.lock().unwrap().get_cloned_solutions(range);
         let tmp_todo = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         rayon::scope(|s| {
-            for i in range {
+            for i in self.range.clone() {
                 let tmp_todo = Arc::clone(&tmp_todo);
                 s.spawn(move |_| {
                     let binding = self.good_solutions.lock().unwrap().get_solution(i);

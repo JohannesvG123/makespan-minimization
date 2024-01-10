@@ -12,3 +12,4 @@ permutation = "0.4.1"
 tokenizers = "0.15.0"
 rand = { version = "0.8.5"}
 rayon = "1.8.0"
+percentage = "0.1.0"
