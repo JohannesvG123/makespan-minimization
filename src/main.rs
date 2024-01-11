@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::{DerefMut, DivAssign};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use clap::{arg, Parser, Subcommand, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
@@ -10,7 +10,6 @@ use rand::Rng;
 use rayon::prelude::*;
 
 use crate::global_bounds::bounds::Bounds;
-use crate::good_solutions::create_good_solutions;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::get_input;
 use crate::input::input::Input;
@@ -79,13 +78,13 @@ impl fmt::Display for Algorithm {
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Mutex<GoodSolutions>>) -> Box<dyn Scheduler + Send>> = enum_map! {
-        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>,_| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>,good_solutions: Arc<Mutex<GoodSolutions>>| Box::new(Swapper::new(input,global_bounds,good_solutions, TwoJobBruteForce, Improvement,3..5))as Box<dyn Scheduler + Send>,
+    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>) -> Box<dyn Scheduler + Send>> = enum_map! {
+        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(Swapper::new(input,global_bounds, TwoJobBruteForce, Improvement,3))as Box<dyn Scheduler + Send>,
     };
 
     //start:
@@ -97,7 +96,9 @@ fn main() {
 
     let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
     let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
-    let good_solutions = create_good_solutions(20);
+    //let good_solutions = create_good_solutions(20);
+    let good_solutions = GoodSolutions::new(20);
+
 
     thread_pool.scope(move |scope| {
         for algorithm in args.algos.iter() {
@@ -107,11 +108,12 @@ fn main() {
             let algorithm = algorithm.clone();
             let args = Arc::clone(&args);
             let global_bounds = Arc::clone(&global_bounds);
-            let good_solutions = Arc::clone(&good_solutions);
+            //let good_solutions = Arc::clone(&good_solutions);
+            let good_solutions = good_solutions.clone();
 
             scope.spawn(move |_| {
-                let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&good_solutions));
-                let mut solution = scheduler.schedule();
+                let mut scheduler = algorithm_map[algorithm](input, global_bounds);
+                let mut solution = scheduler.schedule(good_solutions.clone()); //todo selber in good solutioins speichern lassen
                 //ausgabe
                 let mut s = solution.clone();
                 if s.is_satisfiable() {
@@ -119,7 +121,7 @@ fn main() {
                 }
                 output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
                 //
-                good_solutions.lock().unwrap().add_solution(solution);
+                good_solutions.add_solution(solution.clone()); //todo hier schauen wie oft gecloned wird usw und perfekt machen! (solution und good solutions)
             });
         }
     });

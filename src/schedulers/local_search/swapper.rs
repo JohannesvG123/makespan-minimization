@@ -1,6 +1,5 @@
 use std::cmp::max;
-use std::ops::Range;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -21,15 +20,14 @@ pub struct Swapper {
     //TODO UB immer aktualisieren
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
-    good_solutions: Arc<Mutex<GoodSolutions>>,
     swap_tactic: fn(&Swapper, Solution) -> Solution,
     swap_acceptance_rule: fn(u32, u32) -> bool,
-    range: Range<usize>,
+    number_of_solutions: usize,
 }
 
 impl Scheduler for Swapper {
-    fn schedule(&mut self) -> Solution {
-        self.swap()
+    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
+        self.swap(good_solutions)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -54,11 +52,11 @@ pub enum SwapAcceptanceRule {
     ChanceDecline,
     //(f64)
 
-    //accept improvements & x-percent declines TODO die alle implementieren
+    //accept improvements & x-percent declines TODO diese als ideen stehen lassen
     //SmallDecline, //(f64)
 
-    //accept improvements & x-percent declines with a p-percent chance
-    //SmallAndChanceDecline, //(f64,f64)
+    //accept improvements & declines with a p-percent chance //TODO PRIOOOOOO andere erstmal unwichtiger
+    //SmallAndChanceDecline, //(f64)
 
     //accept improvements & x-percent declines with a p-percent chance (smaller decline => higher chance; bigger decline => smaller chance)
     //WeightedDecline, //(f64,f64)
@@ -67,7 +65,7 @@ pub enum SwapAcceptanceRule {
 }
 
 impl Swapper {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, good_solutions: Arc<Mutex<GoodSolutions>>, swap_tactic: SwapTactic, swap_acceptance_rule: SwapAcceptanceRule, range: Range<usize>) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, swap_tactic: SwapTactic, swap_acceptance_rule: SwapAcceptanceRule, number_of_solutions: usize) -> Self {
         //new swap tactics can be added here:
         let swap_tactic_fn = match swap_tactic {
             TwoJobBruteForce => { Self::two_job_brute_force }
@@ -82,7 +80,7 @@ impl Swapper {
             All => { Self::accept_all }
         };
 
-        Self { input, global_bounds, good_solutions, swap_tactic: swap_tactic_fn, swap_acceptance_rule: swap_acceptance_rule_fn, range }
+        Self { input, global_bounds, swap_tactic: swap_tactic_fn, swap_acceptance_rule: swap_acceptance_rule_fn, number_of_solutions }
     }
 
     fn accept_improvement(old_c_max: u32, new_c_max: u32) -> bool {
@@ -108,44 +106,50 @@ impl Swapper {
         true
     }
 
-    /// swaps jobs of on given schedule(s) to create better one(s)
-    /// range = which schedules to pick from the currently best ones
-    fn swap(&self) -> Solution {
+    /// swaps jobs of specified good solution(s) to create better one(s)
+    fn swap(&self, good_solutions: GoodSolutions) -> Solution {
         println!("running {:?} algorithm...", Swap); //todo (low prio) das kann man raus ziehen
 
         //get solutions:
-        while self.good_solutions.lock().unwrap().get_solution_count() < self.range.end {
+        while good_solutions.get_solution_count() < self.number_of_solutions { //TODO waiting so überhaupt nötig?
             sleep(Duration::from_millis(10));
             //todo (low prio) logging was passiert und iwan abbruch
         }
-        //let mut solutions = self.good_solutions.lock().unwrap().get_cloned_solutions(range);
-        let tmp_todo = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
-        rayon::scope(|s| {
-            for i in self.range.clone() {
-                let tmp_todo = Arc::clone(&tmp_todo);
+
+        let out = rayon::scope(move |s| {
+            let old_solutions = Arc::new(good_solutions.get_best_solutions(self.number_of_solutions));
+            //let new_solutions = vec![];
+
+
+            for i in 0..self.number_of_solutions {
+                let old_solutions = Arc::clone(&old_solutions);
+                let good_solutions = good_solutions.clone();
                 s.spawn(move |_| {
-                    let binding = self.good_solutions.lock().unwrap().get_solution(i);
-                    let mut solution = binding.lock().unwrap();
+                    let mut solution = old_solutions[i].clone();
+
                     loop { //TODO (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
                         println!("(todo schöner loggen)curr c_max={}", solution.get_data().get_c_max());
-                        let mut new_solution = (self.swap_tactic)(self, solution.clone());
+                        let mut new_solution = (self.swap_tactic)(self, solution.clone()); //TODO low prio: so umbauen dass nicht so oft gecloned werden muss durch neue rückgabeargs der tactics wenn sie nix finden
                         if !new_solution.is_satisfiable() {// did not find a swap:
                             break;
                         }
-                        new_solution.add_algorithm(Swap);
 
-                        *solution = new_solution; //TODO (wenn good solutions gescheit gemacht) ist hier solution entweder ändern oder neu speichern (eher das zweite)
+                        solution = new_solution; //TODO (wenn good solutions gescheit gemacht) ist hier solution entweder ändern oder neu speichern (eher das zweite)
                     }
-                    let mut b = tmp_todo.lock().unwrap(); //todo (low prio) todo dings weg wenn good solutions steht
-                    *b = solution.clone();
+
+                    solution.add_algorithm(Swap);
+                    good_solutions.add_solution(solution);
                 });
             }
+
+            old_solutions
         });
 
-        Arc::into_inner(tmp_todo).unwrap().into_inner().unwrap() //TODO (wenn good solutions gescheit gemacht ist) rückgabe zu vec<solution> umbauen und alle ausgeben
+        out.first().unwrap().clone() //TODO (wenn good solutions gescheit gemacht ist) rückgabe zu vec<solution> umbauen und alle ausgeben
     }
 
     /// 2 job swap brute force (try all possible swaps)
+    /// Attention: solution gets mutated!
     fn two_job_brute_force(&self, mut solution: Solution) -> Solution {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();

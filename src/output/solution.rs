@@ -7,7 +7,7 @@ use crate::global_bounds::bounds::Bounds;
 use crate::output::data::Data;
 use crate::output::machine_jobs::MachineJobs;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Solution {
     satisfiable: bool,
     used_algorithms: Vec<Algorithm>,
@@ -66,6 +66,13 @@ impl Solution {
         } else {
             panic!("The solution is unsatisfiable, there is no data!");
         }
+    }
+}
+
+impl PartialEq for Solution {
+    fn eq(&self, other: &Self) -> bool {
+        //two solutions are equal even if the used algorithms are different
+        self.satisfiable == other.satisfiable && self.data == other.data &&self.used_algorithms==other.used_algorithms
     }
 }
 

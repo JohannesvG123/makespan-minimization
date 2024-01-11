@@ -1,62 +1,65 @@
-use std::ops::Range;
-use std::sync::{Arc, Mutex};
+use concurrent_map::ConcurrentMap;
 
 use crate::output::solution::Solution;
 
-/// Sorted (by c_max) List of the best Solutions
-#[derive(Debug)]
+/// Sorted (by c_max) Collection of the max_capacity best Solutions
+#[derive(Debug, Clone)]
 pub struct GoodSolutions {
-    solutions: Vec<(u32, Arc<Mutex<Solution>>)>,
-    //TODO Frage: funktioniert das so wie ich mir das vorstelle? mit den "doppel-mutexes"?
-    //(c_max1,solution1),(c_max2,solution2)...
+    solutions: ConcurrentMap<(u32, usize), Solution>,
+    //((c_max,index),solution),... index is needed for saving multiple solutions with the same c_max
     max_capacity: usize,
 }
 
 impl GoodSolutions {
     pub fn new(max_capacity: usize) -> Self {
         debug_assert!(max_capacity >= 1);
-        Self { solutions: Vec::with_capacity(max_capacity), max_capacity }
+        Self { solutions: ConcurrentMap::new(), max_capacity }
     }
 
-    ///adds solution if it is better than the current best solutions
-    pub fn add_solution(&mut self, new_solution: Solution) {
+    pub fn add_solution(&self, new_solution: Solution) {
         if new_solution.is_satisfiable() {
             let new_c_max = new_solution.get_data().get_c_max();
-            match self.solutions.binary_search_by_key(&new_c_max, |&(c_max, _)| c_max) {
-                Ok(pos) => { // element with same c_max already in vector
-                    if *self.solutions[pos].1.lock().unwrap() != new_solution { //if new_solution is a different solution than the old one
-                        self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
+            let mut new_index: usize = 0;
+
+            //check if new_solution is actually new:
+            if self.solutions.contains_key(&(new_c_max, 0)) {
+                //there is already at least one solution with the same c_max
+                let mut solutions_to_check: Vec<_> = self.solutions.range((new_c_max, 0)..(new_c_max + 1, 0)).collect();
+                for (_, solution) in &solutions_to_check {
+                    if new_solution == *solution {
+                        //new_solution is not new
+                        return;
                     }
                 }
-                Err(pos) => {
-                    self.solutions.insert(pos, (new_c_max, Arc::new(Mutex::new(new_solution))));
-                }
+                //new_solution is actually new
+                new_index = solutions_to_check.pop().unwrap().0.1 + 1;
             }
-            if self.solutions.len() == self.max_capacity { //eine alte solution wird verdrängt
-                self.solutions.pop();
+            self.solutions.insert((new_c_max, new_index), new_solution);
+            while self.solutions.len() >= self.max_capacity {
+                //too many solutions saved
+                self.solutions.pop_last();
             }
         }
     }
 
-    pub fn get_best_solution(&self) -> Arc<Mutex<Solution>> {
-        self.get_solution(0)
-    }
-
-    pub fn get_cloned_solutions(&self, range: Range<usize>) -> Vec<Solution> { //TODO versionen mit und ohne copy impl und überall richtiges verwenden
-        let mut o = vec![];
-        for i in range {
-            o.push(self.get_solution(i).lock().unwrap().clone());
+    /// returns cloned best solution or None 
+    pub fn get_best_solution(&self) -> Option<Solution> {
+        match self.solutions.first() {
+            None => { None }
+            Some((_, solution)) => { Some(solution) }
         }
-        o
     }
 
-    pub fn get_solution(&self, index: usize) -> Arc<Mutex<Solution>> {
-        debug_assert!(index < self.solutions.len());
-        Arc::clone(&self.solutions[index].1)
-    }
-
-    pub fn get_best_solution_count(&self) -> usize {
-        self.solutions.len()
+    /// returns cloned best n solutions (or fewer, when there are no n solutions)
+    pub fn get_best_solutions(&self, n: usize) -> Vec<Solution> {
+        let mut solutions = vec![];
+        for (_, solution) in self.solutions.iter() {
+            solutions.push(solution);
+            if solutions.len() == n {
+                break;
+            }
+        }
+        solutions
     }
 
     pub fn get_solution_count(&self) -> usize {
@@ -65,9 +68,5 @@ impl GoodSolutions {
 
     pub fn get_max_capacity(&self) -> usize {
         self.max_capacity
-    }
-
-    pub fn set_max_capacity(&mut self, max_capacity: usize) {
-        self.max_capacity = max_capacity;
     }
 }

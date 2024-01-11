@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::Algorithm;
 use crate::Algorithm::LPT;
 use crate::global_bounds::bounds::Bounds;
+use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -14,7 +15,7 @@ pub struct LPTScheduler {
 }
 
 impl Scheduler for LPTScheduler {
-    fn schedule(&mut self) -> Solution {
+    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
         self.longest_processing_time()
     }
 

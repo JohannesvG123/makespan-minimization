@@ -5,6 +5,7 @@ use rand::Rng;
 use crate::Algorithm;
 use crate::Algorithm::RF;
 use crate::global_bounds::bounds::Bounds;
+use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -16,7 +17,7 @@ pub struct RFScheduler {
 }
 
 impl Scheduler for RFScheduler {
-    fn schedule(&mut self) -> Solution {
+    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
         self.random_fit()
     }
 
