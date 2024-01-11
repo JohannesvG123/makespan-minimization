@@ -42,6 +42,11 @@ impl Solution {
          &self.used_algorithms
      }*/
 
+    pub fn get_used_algorithms(&self) -> &[Algorithm] {
+        self.used_algorithms.as_slice()
+    }
+
+
     pub fn add_algorithm(&mut self, algorithm: Algorithm) {
         self.used_algorithms.push(algorithm);
     }
@@ -72,7 +77,7 @@ impl Solution {
 impl PartialEq for Solution {
     fn eq(&self, other: &Self) -> bool {
         //two solutions are equal even if the used algorithms are different
-        self.satisfiable == other.satisfiable && self.data == other.data &&self.used_algorithms==other.used_algorithms
+        self.satisfiable == other.satisfiable && self.data == other.data
     }
 }
 
