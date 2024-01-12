@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use permutation::Permutation;
 
+use crate::global_bounds::bounds::Bounds;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::schedule::Schedule;
 
@@ -31,20 +32,25 @@ impl Data {
     }
 
     ///job_1_index_on_machine means the index of job1 on its current machine (in MachineJobs)
-    pub fn swap_jobs(&mut self, machine_1_index: usize, job_1_index_on_machine: usize, machine_2_index: usize, job_2_index_on_machine: usize, jobs: &[u32], machine_count: usize) {
-        self.machine_jobs.swap_jobs(machine_1_index, job_1_index_on_machine, machine_2_index, job_2_index_on_machine, jobs);
-        //TODO Schedule.swap statt neuberechnung:
-        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);
+    /// swap_indices=(machine_1_index, job_1_index, machine_2_index, job_2_index)
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>) {
+        self.machine_jobs.swap_jobs(swap_indices, jobs);
+        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);//TODO Schedule.swap statt neuberechnung
+        self.update_c_max(global_bounds);
+    }
+
+    fn update_c_max(&mut self, global_bounds: Arc<Bounds>) {
         self.c_max = self.machine_jobs.get_c_max();
+        global_bounds.update_upper_bound(self.c_max);
     }
 
     pub fn unsort_inplace(&mut self, permutation: &mut Permutation) {
         permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
-        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
+        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO  rein machen und anpassen!
     }
 
     pub fn unsort(&mut self, permutation: Arc<Permutation>) {
         self.schedule = Schedule::new(permutation.apply_inv_slice(self.schedule.as_slice()));
-        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO 2 rein machen und anpassen!
+        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO  rein machen und anpassen!
     }
 }

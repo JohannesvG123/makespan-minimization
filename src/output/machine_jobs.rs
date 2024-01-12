@@ -57,8 +57,11 @@ impl MachineJobs {
         Schedule::from_machine_jobs(&self, jobs, self.0.len())
     }
 
-    ///job indices on the current machine - NOT general job index
-    pub fn swap_jobs(&mut self, machine_1_index: usize, job_1_index_on_machine: usize, machine_2_index: usize, job_2_index_on_machine: usize, jobs: &[u32]) {
+    /// job indices on the current machine - NOT general job index
+    /// swap_indices: (usize, usize, usize, usize)
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32]) {
+        let (machine_1_index, job_1_index_on_machine, machine_2_index, job_2_index_on_machine) = swap_indices;
+
         let job_1_index = self.0[machine_1_index].1[job_1_index_on_machine];
         let job_2_index = self.0[machine_2_index].1[job_2_index_on_machine];
         self.0[machine_1_index].0 = self.0[machine_1_index].0 + jobs[job_2_index] - jobs[job_1_index];
