@@ -2,6 +2,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
 
+use permutation::Permutation;
+
 use crate::Algorithm;
 use crate::global_bounds::bounds::Bounds;
 use crate::output::data::Data;
@@ -31,6 +33,19 @@ impl Solution {
             satisfiable: false,
             used_algorithms: vec![used_algorithm],
             data: None,
+        }
+    }
+
+    pub fn to_output_string(&self, perm: Arc<Permutation>) -> String {
+        if self.satisfiable {
+            let mut algorithms_str: String = String::new();
+            for algorithm in self.used_algorithms.as_slice() {
+                algorithms_str.push_str(format!("{:?}_", algorithm).as_str());
+            }
+            algorithms_str.pop();
+            format!("{2}\nSCHEDULING_SOLUTION {0} {1}0", self.get_data().get_c_max(), self.get_data().get_unsorted_schedule(perm), algorithms_str)
+        } else {
+            format!("{}\nSCHEDULING_SOLUTION UNSATISFIABLE!", self.used_algorithms[0])
         }
     }
 
@@ -83,6 +98,7 @@ impl PartialEq for Solution {
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        //TODO hier coolere ansicht zum debuggen oder soo
         if self.satisfiable {
             write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0", self.get_data().get_c_max(), self.get_data().get_schedule(), self.used_algorithms[0]) //todo low prio impl display for vec of algos and return all
         } else {

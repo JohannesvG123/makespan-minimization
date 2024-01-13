@@ -13,7 +13,7 @@ use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::get_input;
 use crate::input::input::Input;
-use crate::output::output;
+use crate::output::output_solution;
 use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
 use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
 use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
@@ -71,7 +71,14 @@ pub enum Algorithm {
     /// RF (Random Fit)
     RF,
     /// Swap (local search approach)
-    Swap, //TODO https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen
+    Swap, //TODO https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen / https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html einlesen!
+}
+
+#[derive(Subcommand)]
+pub enum SubEnum {
+    Bli,
+    Bla,
+    Blub,
 }
 
 impl fmt::Display for Algorithm {
@@ -96,7 +103,7 @@ fn main() {
 
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
-    let mut perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
+    let perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
 
     let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
     let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
@@ -115,14 +122,8 @@ fn main() {
 
             scope.spawn(move |_| {
                 let mut scheduler = algorithm_map[algorithm](input, global_bounds);
-                let mut solution = scheduler.schedule(good_solutions.clone());
-                //todo ausgabe schöner machen
-                let mut s = solution.clone();
-                if s.is_satisfiable() {
-                    s.get_mut_data().unsort(perm);
-                }
-                output(vec![(s, &scheduler.get_algorithm())], args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
-                //
+                let solution = scheduler.schedule(good_solutions.clone());
+                output_solution(&solution, perm, args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
                 good_solutions.add_solution(solution);
             });
         }

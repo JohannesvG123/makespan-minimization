@@ -13,7 +13,7 @@ impl MachineJobs {
         Self(vec![(0, vec![]); machine_count])
     }
 
-    pub fn as_slice(&self) -> &[(u32, Vec<usize>)] { //TODO 2 hier noch den Vec weg bekommen als slice oder sooo? evtl aber nur
+    pub fn as_slice(&self) -> &[(u32, Vec<usize>)] {
         self.0.as_slice()
     }
     pub fn as_mut_slice(&mut self) -> &mut [(u32, Vec<usize>)] {

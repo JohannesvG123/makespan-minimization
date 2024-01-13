@@ -36,8 +36,4 @@ impl SortedInput {
     pub fn get_permutation(&self) -> &Permutation {
         &self.permutation
     }
-
-    pub fn unsort_schedule<T: Clone>(&self, schedule: &[T]) -> Vec<T> { //TODO (low prio) löschen wenn nicht verwendet wird -> wurde wo anders hin ausgelagert
-        self.permutation.apply_inv_slice(schedule)
-    }
 }

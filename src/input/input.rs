@@ -5,7 +5,7 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(machine_count: usize, jobs: Vec<u32>) -> Self { //TODO (low prio) hier slice verwenden?
+    pub fn new(machine_count: usize, jobs: Vec<u32>) -> Self {
         Self { machine_count, jobs }
     }
 

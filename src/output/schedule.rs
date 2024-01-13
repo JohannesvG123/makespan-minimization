@@ -1,4 +1,6 @@
 use std::fmt;
+use std::sync::Arc;
+use crate::global_bounds::bounds::Bounds;
 
 use crate::output::machine_jobs::MachineJobs;
 
