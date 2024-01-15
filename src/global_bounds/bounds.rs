@@ -18,7 +18,7 @@ impl Bounds {
 
     pub fn trivial(input: Arc<Input>) -> Self {
         let upper_bound = input.get_jobs().iter().sum::<u32>() / input.get_machine_count() as u32 + input.get_jobs().iter().max().unwrap();
-        let lower_bound = 0; //TODO besseren verwenden
+        let lower_bound = *(input.get_jobs().iter().max().unwrap());
         Self::new(upper_bound, lower_bound)
     }
 
@@ -28,11 +28,11 @@ impl Bounds {
     }
 
     pub fn get_upper_bound(&self) -> u32 {
-        self.upper_bound.load(Ordering::Relaxed) //TODO Ordering checken überall!!! (docs)
+        self.upper_bound.load(Ordering::Acquire) //TODO (low prio) man kann hier auch anderes Ordering verwenden (Relaxed oder SeqCst) => kann man am ende ausprobieren obs nen Unterschied macht
     }
 
     pub fn get_lower_bound(&self) -> u32 {
-        self.lower_bound.load(Ordering::Relaxed)
+        self.lower_bound.load(Ordering::Acquire)
     }
 
     pub fn set_upper_bound(&self, upper_bound: u32) {

@@ -24,7 +24,7 @@ fn main() -> Result<(), rayon::ThreadPoolBuildError> {
     let thread_pool = rayon::ThreadPoolBuilder::new().build().unwrap();
     let m = map.clone();
 
-    let z =thread_pool.scope(move |scope| {
+    let z = thread_pool.scope(move |scope| {
         m.insert((1, 0), 99);
 
         for i in 0..10 {
@@ -35,7 +35,6 @@ fn main() -> Result<(), rayon::ThreadPoolBuildError> {
                 m.insert((i, 0), 99);
                 sleep(Duration::from_millis(rng.gen_range(0..1000)));
                 println!("t {} {}", m.len(), i);
-
             });
         }
         77

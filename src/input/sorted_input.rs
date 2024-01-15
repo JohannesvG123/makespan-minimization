@@ -25,7 +25,7 @@ impl SortedInput {
         }
     }
 
-    pub fn get_input(&self) -> Arc<Input> {
+    pub fn get_input(&self) -> Arc<Input> { //todo (low prio) &Input zurückgeben und alles daran anpassen
         self.input.clone()
     }
 

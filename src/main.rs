@@ -29,7 +29,45 @@ mod schedulers;
 mod global_bounds;
 mod good_solutions;
 
-/// Program to solve makespan-minimization problems
+/// Framework to solve makespan-minimization problems
+
+fn main() {
+    //new algorithms can be added here:
+    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>) -> Box<dyn Scheduler + Send>> = enum_map! {
+        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(Swapper::new(input,global_bounds, TwoJobBruteForce, SwapAcceptanceRule::DeclineByChance(0.1),3))as Box<dyn Scheduler + Send>,
+    };
+
+    //start:
+    let args = Arc::new(Args::parse());
+
+    let mut sorted_input = get_input(&args.path);
+    let input = sorted_input.get_input();
+    let perm = Arc::new(sorted_input.get_permutation());
+
+    let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
+    let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
+    let good_solutions = GoodSolutions::new(args.num_solutions);
+
+    thread_pool.scope(move |scope| {
+        for algorithm in args.algos.iter() {
+            //clone references to use them in spawned threads:
+            let (algorithm, good_solutions, input, perm, args, global_bounds) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&perm), Arc::clone(&args), Arc::clone(&global_bounds));
+
+            scope.spawn(move |_| {
+                let mut scheduler = algorithm_map[algorithm](input, global_bounds);
+                let solution = scheduler.schedule(good_solutions.clone());
+                output_solution(&solution, perm, args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
+                good_solutions.add_solution(solution);
+            });
+        }
+    });
+}
+
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -58,7 +96,7 @@ struct Args {
     num_solutions: usize,
 }
 
-#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum)]
+#[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, Copy)]
 pub enum Algorithm {
     /// LPT (Longest Processing Time/Worst Fit)
     LPT,
@@ -71,7 +109,7 @@ pub enum Algorithm {
     /// RF (Random Fit)
     RF,
     /// Swap (local search approach)
-    Swap, //TODO https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen / https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html einlesen!
+    Swap, //TODO 1 https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen / https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html einlesen!
 }
 
 #[derive(Subcommand)]
@@ -86,49 +124,3 @@ impl fmt::Display for Algorithm {
         write!(f, "algorithm {:?}:", self)
     }
 }
-
-fn main() {
-    //new algorithms can be added here:
-    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>) -> Box<dyn Scheduler + Send>> = enum_map! {
-        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(RFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(Swapper::new(input,global_bounds, TwoJobBruteForce, SwapAcceptanceRule::DeclineByChance(0.1),3))as Box<dyn Scheduler + Send>,
-    };
-
-    //start:
-    let args = Arc::new(Args::parse());
-
-    let mut sorted_input = get_input(&args.path);
-    let input = sorted_input.get_input();
-    let perm = Arc::new(sorted_input.get_permutation().clone()); //todo ihhh clone value -> Aber das sorting muss eh noch angepasst werden und dann ergibt sich das
-
-    let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
-    let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
-    let good_solutions = GoodSolutions::new(args.num_solutions);
-    let x = good_solutions.clone(); //tmp
-
-    thread_pool.scope(move |scope| {
-        for algorithm in args.algos.iter() {
-            println!("{}", algorithm);
-            let input = Arc::clone(&input); //TODO alles inline am ende und überprüfen ob immer Arc usw nötig ist
-            let perm = Arc::clone(&perm);
-            let algorithm = algorithm.clone(); //todo noch nötig?
-            let args = Arc::clone(&args);
-            let global_bounds = Arc::clone(&global_bounds);
-            let good_solutions = x.clone();//good_solutions.clone(); tmp
-
-            scope.spawn(move |_| {
-                let mut scheduler = algorithm_map[algorithm](input, global_bounds);
-                let solution = scheduler.schedule(good_solutions.clone());
-                output_solution(&solution, perm, args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
-                good_solutions.add_solution(solution);
-            });
-        }
-    });
-    println!("{:?}", good_solutions.get_solution_count()); //tmp
-    println!("{:?}", good_solutions); //tmp
-}
-

@@ -35,7 +35,7 @@ impl Data {
     /// swap_indices=(machine_1_index, job_1_index, machine_2_index, job_2_index)
     pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>) {
         self.machine_jobs.swap_jobs(swap_indices, jobs);
-        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);//TODO (low prio) Schedule.swap statt neuberechnung kann speedup bringen
+        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);//TODO (low prio) Schedule.swap smart implementiert statt neuberechnung kann speedup bringen => wobeiman dann auch direkt so umbauen kann: solution hat nur machines workload und schedule wird nur beim output berechnet
         self.update_c_max(global_bounds);
     }
 
@@ -44,17 +44,7 @@ impl Data {
         global_bounds.update_upper_bound(self.c_max);
     }
 
-    pub fn unsort_inplace(&mut self, permutation: &mut Permutation) { //todo das benutzen statt non-inplace aber dann braucht perm n mutex in main
-        permutation.apply_inv_slice_in_place(self.schedule.as_mut_slice());
-        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO self.machine_jobs.unsort(...) rein machen und anpassen!
-    }
-
-    pub fn unsort(&mut self, permutation: Arc<Permutation>) {
-        self.schedule = Schedule::new(permutation.apply_inv_slice(self.schedule.as_slice()));
-        //permutation.apply_inv_slice_in_place(self.machine_jobs.as_mut_slice()); //TODO s.o.
-    }
-
-    pub fn get_unsorted_schedule(&self, permutation: Arc<Permutation>) -> Schedule {
+    pub fn get_unsorted_schedule(&self, permutation: Arc<&Permutation>) -> Schedule {
         Schedule::new(permutation.apply_inv_slice(self.schedule.as_slice()))
     }
 }

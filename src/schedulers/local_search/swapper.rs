@@ -49,7 +49,8 @@ pub enum SwapAcceptanceRule {
     Improvement,
     ///accept improvements & declines with a p-percent chance
     DeclineByChance(f64),
-    //todo (low prio) folgende 3 rules ausprobieren:
+
+    //TODO (low prio) folgende 3 rules ausprobieren:
     //accept improvements & x-percent declines
     //SmallDecline, //(f64)
 
@@ -58,6 +59,7 @@ pub enum SwapAcceptanceRule {
 
     //accept improvements & x-percent declines with a p-percent chance (smaller decline => higher chance; bigger decline => smaller chance)
     //WeightedDecline, //(f64,f64)
+
     ///accept all swaps independent of c_max
     All,
 }
@@ -73,7 +75,7 @@ impl Swapper {
         //new swap acceptance rules can be added here:
         let swap_acceptance_rule_fn = match swap_acceptance_rule {
             Improvement => { Self::accept_improvement }
-            DeclineByChance(percentage) => { Self::accept_decline_by_chance_tmp } //Todo den parameter mit aufnehmen...
+            DeclineByChance(percentage) => { Self::accept_decline_by_chance_tmp } //TODO 1 den parameter mit aufnehmen...
             All => { Self::accept_all }
         };
 
@@ -116,10 +118,10 @@ impl Swapper {
 
         rayon::scope(move |s| {
             //get solutions:
-            while good_solutions.get_solution_count() < self.number_of_solutions { //TODO should terminate methode hier aufrufen (iwan abbruch)
+            while good_solutions.get_solution_count() < self.number_of_solutions { //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
                 sleep(Duration::from_millis(10));
                 println!("zzzZzzZzzZzz")
-                //todo (logging)
+                //todo 1 (logging)
             }
 
             let old_solutions = Arc::new(good_solutions.get_best_solutions(self.number_of_solutions));
@@ -132,7 +134,7 @@ impl Swapper {
                 s.spawn(move |_| {
                     let mut solution = old_solutions[i].clone();
 
-                    //TODO (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
+                    //todo 1 (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
                     while let Some(swap_indices) = (self.swap_finding_tactic)(self, &solution) {
                         solution.get_mut_data().swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds));
                     }
@@ -151,7 +153,6 @@ impl Swapper {
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    /// Attention: solution gets mutated!
     fn find_brute_force_two_job_swap(&self, solution: &Solution) -> Option<(usize, usize, usize, usize)> {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();
@@ -219,7 +220,7 @@ impl Swapper {
                 return Some((m1, j1, m2, j2));
             } else {
                 fails += 1;
-                if fails == 50 {//todo (logging)
+                if fails == 50 {//todo 1 (logging)
                     return None;
                 }
             }
@@ -241,4 +242,5 @@ impl Swapper {
             max_workload
         }
     }
+
 }

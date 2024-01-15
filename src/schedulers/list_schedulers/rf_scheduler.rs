@@ -41,7 +41,7 @@ impl RFScheduler {
 
         let mut machine_jobs = MachineJobs::empty(machine_count);
         let mut rng = rand::thread_rng();
-        let fails_until_check: usize = self.input.get_machine_count();// Number of fails until a satisfiability check is done //TODO FRAGE passt das so oder anderer wert?
+        let fails_until_check: usize = self.input.get_machine_count();// Number of fails until a satisfiability check is done
 
         for job_index in 0..self.input.get_job_count() {
             let mut random_index = rng.gen_range(0..self.input.get_machine_count());
@@ -50,7 +50,7 @@ impl RFScheduler {
             while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
                 fails += 1;
                 if fails == fails_until_check {
-                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten)
+                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten) / oder lässt man den einf komplett raus?
                         fails = 0;
                     } else {
                         println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF);
