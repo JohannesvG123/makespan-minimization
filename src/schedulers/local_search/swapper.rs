@@ -13,7 +13,7 @@ use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
-use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement};
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, SimulatedAnnealing};
 use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
 
@@ -49,16 +49,8 @@ pub enum SwapAcceptanceRule {
     Improvement,
     ///accept improvements & declines with a p-percent chance
     DeclineByChance(f64),
-
-    //TODO (low prio) folgende 3 rules ausprobieren:
-    //accept improvements & x-percent declines
-    //SmallDecline, //(f64)
-
-    //accept improvements & x-percent declines with a p-percent chance
-    //SmallAndChanceDecline, //(f64,f64)
-
-    //accept improvements & x-percent declines with a p-percent chance (smaller decline => higher chance; bigger decline => smaller chance)
-    //WeightedDecline, //(f64,f64)
+    ///accept improvements & declines with ...todo (-> https://de.wikipedia.org/wiki/Simulated_Annealing)
+    SimulatedAnnealing,
 
     ///accept all swaps independent of c_max
     All,
@@ -76,6 +68,7 @@ impl Swapper {
         let swap_acceptance_rule_fn = match swap_acceptance_rule {
             Improvement => { Self::accept_improvement }
             DeclineByChance(percentage) => { Self::accept_decline_by_chance_tmp } //TODO 1 den parameter mit aufnehmen...
+            SimulatedAnnealing => { todo!() }
             All => { Self::accept_all }
         };
 
@@ -124,7 +117,7 @@ impl Swapper {
                 //todo 1 (logging)
             }
 
-            let old_solutions = Arc::new(good_solutions.get_best_solutions(self.number_of_solutions));
+            let old_solutions = Arc::new(good_solutions.get_best_solutions(self.number_of_solutions)); //TODO (low prio) version einbauen mit eingabe von Solution auf der gearbeitet wird (zb RF laufen lassen und iwan dann swap drauf schmeißen) => bei den List schedulern ein bool hinzufügen ob das gemacht werden soll oder nicht
             let best_c_max = old_solutions.last().unwrap().get_data().get_c_max();
 
             for i in 0..self.number_of_solutions {
@@ -188,7 +181,7 @@ impl Swapper {
     }
 
     /// 2 job random swap
-    fn find_random_two_job_swap(&self, solution: &Solution) -> Option<(usize, usize, usize, usize)> {
+    fn find_random_two_job_swap(&self, solution: &Solution) -> Option<(usize, usize, usize, usize)> {//todo 1 , fails_until_stop:u8 als param mit aufnehmen -> dann auch bei RF
         let mut rng = rand::thread_rng();
         let mut fails: u8 = 0;
 
@@ -242,5 +235,4 @@ impl Swapper {
             max_workload
         }
     }
-
 }

@@ -50,9 +50,15 @@ impl Bounds {
 
     pub fn update_upper_bound(&self, new_upper_bound: u32) {
         self.upper_bound.fetch_min(new_upper_bound, Ordering::SeqCst);
+        if self.get_upper_bound() == self.get_lower_bound() {
+            println!("OPTTTTTTTTT found"); //todo 1 in dem fall kann man ja eig das ganze programm beenden (davor noch die OPT solution ausgeben => geht easy da das immer nur von solution oder dsolution.data aufgerufen wird => einfach self ref mitgeben)
+        }
     }
 
     pub fn update_lower_bound(&self, new_lower_bound: u32) {
         self.upper_bound.fetch_max(new_lower_bound, Ordering::SeqCst);
+        if self.get_upper_bound() == self.get_lower_bound() {
+            println!("OPTTTTTTTTT found");
+        }
     }
 }

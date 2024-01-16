@@ -62,6 +62,7 @@ impl RFScheduler {
 
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
+
         Solution::new(RF, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

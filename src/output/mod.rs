@@ -14,6 +14,7 @@ pub mod schedule;
 pub fn output_solutions(solutions: Vec<&Solution>, perm: Arc<&Permutation>, write: bool, write_name: Option<String>, input_file_name: &str) {
     for solution in solutions {
         //TODO (low prio) cmd args so umbauen dass man mit write name ein directory wo das alles rein kommt erstellt o.ä.
+        // oder output erst ganz am ende die besten solutions
         todo!()
     }
 }
