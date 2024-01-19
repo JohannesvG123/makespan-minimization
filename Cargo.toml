@@ -14,3 +14,4 @@ rand = { version = "0.8.5"}
 rayon = "1.8.0"
 percentage = "0.1.0"
 concurrent-map = "5.0.33"
+chrono = "0.4.31"

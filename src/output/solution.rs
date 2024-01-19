@@ -43,9 +43,9 @@ impl Solution {
                 algorithms_str.push_str(format!("{:?}_", algorithm).as_str());
             }
             algorithms_str.pop();
-            format!("{2}\nSCHEDULING_SOLUTION {0} {1}0", self.get_data().get_c_max(), self.get_data().get_unsorted_schedule(perm), algorithms_str)
+            format!("{2}\nSCHEDULING_SOLUTION {0} {1}0\n\n", self.get_data().get_c_max(), self.get_data().get_unsorted_schedule(perm), algorithms_str)
         } else {
-            format!("{}\nSCHEDULING_SOLUTION UNSATISFIABLE!", self.used_algorithms[0])
+            format!("{}\nSCHEDULING_SOLUTION UNSATISFIABLE!\n", self.used_algorithms[0])
         }
     }
 

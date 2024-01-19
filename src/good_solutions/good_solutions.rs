@@ -1,5 +1,10 @@
-use concurrent_map::ConcurrentMap;
+use std::sync::Arc;
 
+use chrono::Local;
+use concurrent_map::ConcurrentMap;
+use permutation::Permutation;
+
+use crate::output::output_solution;
 use crate::output::solution::Solution;
 
 /// Sorted (by c_max) Collection of the max_capacity best Solutions
@@ -68,5 +73,19 @@ impl GoodSolutions {
 
     pub fn get_max_capacity(&self) -> usize {
         self.max_capacity
+    }
+
+    pub fn write_output(&self, perm: Arc<&Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool) {
+        let directory_name_str = match directory_name {
+            None => {
+                let date = Local::now();
+                format!("{0}_solution_{1}", input_file_name, date.format("%Y-%m-%d_%H-%M-%S"))
+            }
+            Some(str) => str.to_string()
+        };
+
+        for (_, solution) in self.solutions.iter() {
+            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files);
+        }
     }
 }

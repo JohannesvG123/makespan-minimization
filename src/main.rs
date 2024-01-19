@@ -13,7 +13,6 @@ use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::get_input;
 use crate::input::input::Input;
-use crate::output::output_solution;
 use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
 use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
 use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
@@ -31,7 +30,7 @@ mod good_solutions;
 
 /// Framework to solve makespan-minimization problems
 
-fn main() {
+fn main() { //TODO PRIO arg für varianten 1. alle solutions ausgeben , 2.1 good solutions am ende in eine datei / 2.2 einzeln
     //new algorithms can be added here:
     let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>) -> Box<dyn Scheduler + Send>> = enum_map! {
         Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
@@ -53,6 +52,10 @@ fn main() {
     let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
     let good_solutions = GoodSolutions::new(args.num_solutions);
 
+    let perm_for_output = perm.clone();//todo schöner machen
+    let args_for_output = args.clone();
+    let good_solutions_for_output = good_solutions.clone();
+
     thread_pool.scope(move |scope| {
         for algorithm in args.algos.iter() {
             //clone references to use them in spawned threads:
@@ -61,13 +64,17 @@ fn main() {
             scope.spawn(move |_| {
                 let mut scheduler = algorithm_map[algorithm](input, global_bounds);
                 let solution = scheduler.schedule(good_solutions.clone());
-                output_solution(&solution, perm, args.write.clone(), args.write_name.clone(), args.path.file_stem().unwrap().to_str().unwrap());
+                //TODO logging hier immer solution loggen
+                //output_solution(&solution, perm, args.write.clone(), args.directory_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //this would print the calculated solution directly TODO mit param modifizierbar machen ob hier oder am ende
                 good_solutions.add_solution(solution);
             });
         }
     });
+
+    good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
 }
 
+//TODO PRIO Thread nr ausgeben wenn möglich
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -75,24 +82,28 @@ struct Args {
     #[arg(short, long, required = true)]
     path: PathBuf,
 
-    /// Whether the output should be written in a file or not
-    #[arg(short = 'w', long, action)]
+    /// Whether the output should be written in a directory or not
+    #[arg(long, action)]
     write: bool,
 
-    /// File name of the output file
-    #[arg(short = 'n', long, requires = "write")]
-    write_name: Option<String>,
+    /// Name of the output directory
+    #[arg(long, requires = "write")]
+    write_directory_name: Option<String>,
+
+    /// Whether the output should be written in a single file or in separate ones
+    #[arg(long, action, requires = "write")]
+    write_separate_files: bool,
 
     /// Algorithm(s) to use
     #[arg(short, long, num_args = 1.., required = true)]
     algos: Vec<Algorithm>,
 
     /// How many threads to start
-    #[arg(short = 't', long, default_value = "8")]
+    #[arg(long, default_value = "8")]
     num_threads: usize,
 
     /// How many good solutions to store
-    #[arg(short = 's', long, default_value = "50")]
+    #[arg(long, default_value = "50")]
     num_solutions: usize,
 }
 

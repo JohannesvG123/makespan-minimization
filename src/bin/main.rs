@@ -1,5 +1,6 @@
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
+use chrono::Local;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
@@ -7,6 +8,10 @@ use rand::rngs::ThreadRng;
 //let pool = rayon::ThreadPoolBuilder::new().num_threads(5).build().unwrap();
 fn main() -> Result<(), rayon::ThreadPoolBuildError> {
     println!("lego");
+    let date = Local::now();
+    println!("{}", date.format("%Y-%m-%d_%H-%M-%S"));
+    println!("{:?}", SystemTime::now());
+
     let map = concurrent_map::ConcurrentMap::<(usize, usize), usize>::default();
     println!("{}", map.len());
 
