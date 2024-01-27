@@ -1,7 +1,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use chrono::Local;
+
 use crate::input::input::Input;
+use crate::output::log;
 
 pub struct Bounds {
     upper_bound: AtomicU32,
@@ -49,16 +52,24 @@ impl Bounds {
     }
 
     pub fn update_upper_bound(&self, new_upper_bound: u32) {
-        self.upper_bound.fetch_min(new_upper_bound, Ordering::SeqCst);
+        let date = Local::now();
+        let prev = self.upper_bound.fetch_min(new_upper_bound, Ordering::SeqCst);
+        if new_upper_bound < prev {
+            log(format!("NEW upper_bound:{}->{} ({})", prev, new_upper_bound, date.format("%H:%M:%S%.f")))
+        }
         if self.get_upper_bound() == self.get_lower_bound() {
-            println!("OPTTTTTTTTT found"); //todo 1 in dem fall kann man ja eig das ganze programm beenden (davor noch die OPT solution ausgeben => geht easy da das immer nur von solution oder dsolution.data aufgerufen wird => einfach self ref mitgeben)
+            log(String::from("OPTTTTTTTTT found")); //todo 1 in dem fall kann man ja eig das ganze programm beenden (davor noch die OPT solution ausgeben => geht easy da das immer nur von solution oder dsolution.data aufgerufen wird => einfach self ref mitgeben + endzeit ausgeben)
         }
     }
 
     pub fn update_lower_bound(&self, new_lower_bound: u32) {
-        self.upper_bound.fetch_max(new_lower_bound, Ordering::SeqCst);
+        let date = Local::now();
+        let prev = self.upper_bound.fetch_max(new_lower_bound, Ordering::SeqCst);
+        if new_lower_bound > prev {
+            log(format!("NEW lower_bound:{}->{} ({})", prev, new_lower_bound, date.format("%H:%M:%S%.f")))
+        }
         if self.get_upper_bound() == self.get_lower_bound() {
-            println!("OPTTTTTTTTT found");
+            log(String::from("OPTTTTTTTTT found"));
         }
     }
 }

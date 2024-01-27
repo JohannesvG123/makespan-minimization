@@ -7,10 +7,11 @@ use rand_chacha::ChaCha8Rng;
 use rayon::current_thread_index;
 
 use crate::{Algorithm};
-use crate::Algorithm::RF;
+use crate::Algorithm::{BF, RF};
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::scheduler::Scheduler;
@@ -38,8 +39,7 @@ impl RFScheduler {
 
     /// Assigns the jobs to random machines
     pub fn random_fit(&self) -> Solution {
-        println!("running {:?} algorithm...", RF);
-        println!("4T_ID:{:?}", current_thread_index());
+        log(format!("running {:?} algorithm...", RF));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -50,7 +50,6 @@ impl RFScheduler {
 
         let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
         thread_rng().fill(&mut seed);
-        println!("seed:{:?}", seed);
         let mut rng = ChaCha8Rng::from_seed(seed);
 
         for job_index in 0..self.input.get_job_count() {
@@ -63,7 +62,7 @@ impl RFScheduler {
                     if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten) / oder lässt man den einf komplett raus?
                         fails = 0;
                     } else {
-                        println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF);
+                        log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF));
                         return Solution::unsatisfiable(RF);
                     }
                 }

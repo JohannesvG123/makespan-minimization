@@ -4,7 +4,7 @@ use chrono::Local;
 use concurrent_map::ConcurrentMap;
 use permutation::Permutation;
 
-use crate::output::output_solution;
+use crate::output::{log, output_solution};
 use crate::output::solution::Solution;
 
 /// Sorted (by c_max) Collection of the max_capacity best Solutions
@@ -40,7 +40,7 @@ impl GoodSolutions {
                 new_index = solutions_to_check.pop().unwrap().0.1 + 1;
             }
             self.solutions.insert((new_c_max, new_index), new_solution);
-            while self.solutions.len() >= self.max_capacity {
+            while self.solutions.len() > self.max_capacity {
                 //too many solutions saved
                 self.solutions.pop_last();
             }
@@ -76,6 +76,8 @@ impl GoodSolutions {
     }
 
     pub fn write_output(&self, perm: Arc<&Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool) {
+        println!("writing output...");
+
         let directory_name_str = match directory_name {
             None => {
                 let date = Local::now();

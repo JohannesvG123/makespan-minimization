@@ -5,6 +5,7 @@ use crate::Algorithm::BF;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::scheduler::Scheduler;
@@ -31,7 +32,7 @@ impl BFScheduler {
 
     /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned
     pub fn best_fit(&self) -> Solution {
-        println!("running {:?} algorithm...", BF);
+        log(format!("running {:?} algorithm...", BF));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -51,7 +52,7 @@ impl BFScheduler {
                 }
             }
             if !fitting_machine_found { //satisfiability check
-                println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF);
+                log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF));
                 return Solution::unsatisfiable(BF);
             }
 

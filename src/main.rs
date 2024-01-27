@@ -7,6 +7,7 @@ use std::str::FromStr;
 use std::string::String;
 use std::sync::Arc;
 
+use chrono::Local;
 use clap::{arg, FromArgMatches, Parser, Subcommand, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
 use rand::{Rng, SeedableRng};
@@ -17,6 +18,7 @@ use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::get_input;
 use crate::input::input::Input;
+use crate::output::log;
 use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
 use crate::schedulers::list_schedulers::ff_scheduler::FFScheduler;
 use crate::schedulers::list_schedulers::lpt_scheduler::LPTScheduler;
@@ -34,19 +36,19 @@ mod schedulers;
 /// Framework to solve makespan-minimization problems
 
 fn main() {
-    //TODO PRIO thread nr
     //new algorithms can be added here:
     let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Args>, usize) -> Box<dyn Scheduler + Send>, > = enum_map! {
-        Algorithm::LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        Algorithm::BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        Algorithm::RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RFScheduler::new(input,global_bounds,args.rf_configs[config_id].clone()))as Box<dyn Scheduler + Send>, //TODO prio clone wegbekommen mit slice oder soo
-        Algorithm::Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone()))as Box<dyn Scheduler + Send>,
+        LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RFScheduler::new(input,global_bounds,args.rf_configs[config_id].clone()))as Box<dyn Scheduler + Send>, //TODO prio clone wegbekommen mit slice oder soo
+        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone()))as Box<dyn Scheduler + Send>,
     };
 
     //start:
     let args = Arc::new(Args::parse());
+
     let mut algos = vec![]; //das muss man gerade so machen, da das cmd-arg Vec<Algos> keine subcommands zulässt...
     if args.bf { algos.push(BF); }
     if args.ff { algos.push(FF); }
@@ -57,15 +59,15 @@ fn main() {
 
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
-    let perm = Arc::new(sorted_input.get_permutation());
 
     let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
     let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
     let good_solutions = GoodSolutions::new(args.num_solutions);
 
-    let perm_for_output = perm.clone(); //todo schöner machen
-    let args_for_output = args.clone();
-    let good_solutions_for_output = good_solutions.clone();
+    let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::new(sorted_input.get_permutation()), Arc::clone(&args), good_solutions.clone());
+
+    //Zeitmessung
+    log(format!("START: {}", Local::now().format("%H:%M:%S%.f")));
 
     thread_pool.scope(move |scope| {
         for algorithm in algos.iter() {
@@ -75,26 +77,24 @@ fn main() {
             } else if algorithm == &Swap {
                 config_count = args.swap_configs.len();
             }
+
             for current_config_id in 0..config_count {
                 //clone references to use them in spawned threads:
-                let (algorithm, good_solutions, input, perm, args, global_bounds) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&perm), Arc::clone(&args), Arc::clone(&global_bounds), );
+                let (algorithm, good_solutions, input, args, global_bounds) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds));
 
-                //let tmp = Arc::new(args.rf_configs);
                 scope.spawn(move |_| {
                     let mut scheduler = algorithm_map[algorithm](input, global_bounds, args, current_config_id);
                     let solution = scheduler.schedule(good_solutions.clone());
-                    //TODO logging hier immer solution loggen
-                    //output_solution(&solution, perm, args.write.clone(), args.directory_name.clone(), args.path.file_stem().unwrap().to_str().unwrap()); //this would print the calculated solution directly TODO mit param modifizierbar machen ob hier oder am ende
                     good_solutions.add_solution(solution);
                 });
             }
         }
     });
 
+    log(format!("END: {}", Local::now().format("%H:%M:%S%.f")));
     good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
 }
 
-//TODO PRIO Thread nr ausgeben wenn möglich   println!("3T_ID:{:?}", current_thread_index());
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -121,7 +121,7 @@ struct Args {
     /// use RF (Random Fit) algo
     #[arg(long, action)]
     rf: bool,
-    //TODO PRIO zeitstamps + messungen + logging
+    //TODO PRIO zeitstamps + messungen
     /// configurations for running the RF algo (structure: "[rng_seed1];[fails_until_check1] ...", rng_seed default=todo, fails_until_check default = 50)
     #[arg(long, value_name = "RF_CONFIG", num_args = 1.., requires = "rf", required_if_eq("rf", "true"))]
     rf_configs: Vec<RFConfig>,
@@ -172,7 +172,7 @@ pub enum Algorithm {
     /// RF (Random Fit)
     RF,
     /// Swap (local search approach)
-    Swap, //TODO 1 https://github.com/clap-rs/clap/issues/2005 SwapTacticc, Range<usize>, acc_rule als sub-parameter oä einfügen / https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html einlesen!
+    Swap,
 }
 
 impl fmt::Display for Algorithm {

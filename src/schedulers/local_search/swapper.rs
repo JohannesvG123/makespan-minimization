@@ -9,14 +9,14 @@ use std::time::Duration;
 use atoi::atoi;
 use clap::ValueEnum;
 use rand::Rng;
-use rayon::current_thread_index;
 use regex::Regex;
 
-use crate::{Algorithm};
+use crate::Algorithm;
 use crate::Algorithm::Swap;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, SimulatedAnnealing};
@@ -125,18 +125,16 @@ impl Swapper {
     /// the newly created solutions get stored in good_solutions
     /// the best one gets returned
     fn swap(&self, good_solutions: GoodSolutions) -> Solution {
-        println!("running {:?} algorithm...", Swap);
+        log(format!("running {:?} algorithm...", Swap));
 
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
-        println!("1T_ID:{:?}", current_thread_index());
         rayon::scope(move |s| {
-            println!("2T_ID:{:?}", current_thread_index());
             //get solutions:
             while good_solutions.get_solution_count() < self.config.number_of_solutions {
                 //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
                 sleep(Duration::from_millis(10));
-                println!("zzzZzzZzzZzz")
+                log(String::from("waiting for enough good solutions to run Swap algorithm..."));
                 //todo 1 (logging)
             }
 
@@ -176,9 +174,7 @@ impl Swapper {
                         decline_by_chance_percentage,
                         number_of_solutions: self.config.number_of_solutions,
                     };
-                    println!("CONFIG::::{:?} {:?}", concrete_swap_config, self.config);
 
-                    println!("3T_ID:{:?}", current_thread_index());
                     let mut solution = old_solutions[i].clone();
 
                     //todo 1 (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))

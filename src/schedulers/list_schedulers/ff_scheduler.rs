@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use crate::Algorithm;
-use crate::Algorithm::FF;
+use crate::Algorithm::{BF, FF};
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::scheduler::Scheduler;
@@ -31,7 +32,7 @@ impl FFScheduler {
 
     /// Assigns the biggest job to the machine with the smallest index until all jobs are assigned
     pub fn first_fit(&self) -> Solution {
-        println!("running {:?} algorithm...", FF);
+        log(format!("running {:?} algorithm...", FF));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -45,7 +46,7 @@ impl FFScheduler {
             if machine_jobs.get_machine_workload(current_machine) + jobs[job_index] > upper_bound {
                 current_machine += 1;
                 if current_machine == self.input.get_machine_count() { //satisfiability check
-                    println!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, FF);
+                    log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, FF));
                     return Solution::unsatisfiable(FF);
                 }
             }

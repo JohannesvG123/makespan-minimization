@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use permutation::Permutation;
+use rayon::current_thread_index;
 
 use crate::output::solution::Solution;
 
@@ -36,7 +37,6 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
                 filename.push_str(&i.to_string());
                 path = format!("data/{0}/{1}.txt", directory_name, filename);
             }
-            println!("writing output in \"{}\" ...", path); //TODO logging (ganze methode)
             let mut file = File::create(path).unwrap();
             file.write_all(output_string.as_bytes()).unwrap();
         } else {
@@ -56,6 +56,17 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
             }
         }
     } else {
-        println!("{}", solution); //TODO low prio hier evtl nur c_max oder so ausgeben oder vllt auch garnix
+        println!("{}", solution); //TODO (low prio) hier evtl nur c_max ausgeben für die übersichtilichkeit
     }
+}
+
+///used for logging (also prints the current thread index if available)
+pub fn log(message: String) {
+    let thread_opt = current_thread_index();
+    let thread = match thread_opt {
+        None => { String::new() }
+        Some(t) => { format!("thread_{}: ", t) }
+    };
+
+    println!("{}{}", thread, message)
 }

@@ -21,10 +21,9 @@ fn read_input(path_buf: &PathBuf) -> String {
 }
 
 fn parse_input(input_str: &str) -> SortedInput {
-    //TODO (low prio) auf Tokenized umstellen...
     println!("parsing input...");
 
-    let mut split = input_str.split_whitespace();
+    let mut split = input_str.split_whitespace(); //TODO (low prio) auf Tokenized umstellen...
 
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();
