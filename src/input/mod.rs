@@ -40,3 +40,14 @@ fn parse_input(input_str: &str) -> SortedInput {
         panic!("invalid input! => check the input file") //wenns tokenized ist: evtl aussagekräftiger machen und sagen was falsch war
     }
 }
+
+pub fn seed_from_str(part: &str) -> [u8; 32] {
+    let seed_part = part.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
+    let seed_parts: Vec<&str> = seed_part.split(",").collect();
+
+    let mut seed: [u8; 32] = [0; 32];
+    for i in 0..seed_parts.len() {
+        seed[i] = seed_parts[i].parse::<u8>().unwrap();
+    }
+    seed
+}

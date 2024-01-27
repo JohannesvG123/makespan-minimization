@@ -4,13 +4,13 @@ use std::sync::Arc;
 
 use rand::{Rng, SeedableRng, thread_rng};
 use rand_chacha::ChaCha8Rng;
-use rayon::current_thread_index;
 
-use crate::{Algorithm};
-use crate::Algorithm::{BF, RF};
+use crate::Algorithm;
+use crate::Algorithm::RF;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::input::seed_from_str;
 use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -46,11 +46,12 @@ impl RFScheduler {
         let jobs = self.input.get_jobs();
 
         let mut machine_jobs = MachineJobs::empty(machine_count);
-        let fails_until_check: usize = self.input.get_machine_count(); // Number of fails until a satisfiability check is done
 
-        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
-        thread_rng().fill(&mut seed);
-        let mut rng = ChaCha8Rng::from_seed(seed);
+        let mut rng = ChaCha8Rng::from_seed(self.config.rng_seed);
+        let fails_until_check = match self.config.fails_until_check {
+            None => { self.input.get_machine_count() }
+            Some(n) => { n }
+        };
 
         for job_index in 0..self.input.get_job_count() {
             let mut random_index = rng.gen_range(0..self.input.get_machine_count());
@@ -79,7 +80,7 @@ impl RFScheduler {
 #[derive(Clone, Debug)]
 pub struct RFConfig {
     rng_seed: [u8; 32],
-    fails_until_check: usize,
+    fails_until_check: Option<usize>,
 }
 
 impl FromStr for RFConfig {
@@ -90,15 +91,7 @@ impl FromStr for RFConfig {
         Ok(RFConfig {
             rng_seed: {
                 if parts[0].len() > 0 {
-                    //todo outline und für swap verwenden
-                    let seed_part = parts[0].strip_prefix('[').unwrap().strip_suffix(']').unwrap();
-                    let seed_parts: Vec<&str> = seed_part.split(",").collect();
-
-                    let mut seed: [u8; 32] = [0; 32];
-                    for i in 0..seed_parts.len() {
-                        seed[i] = seed_parts[i].parse::<u8>().unwrap();
-                    }
-                    seed
+                    seed_from_str(parts[0])
                 } else {
                     //default: random seed
                     let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
@@ -108,10 +101,10 @@ impl FromStr for RFConfig {
             },
             fails_until_check: {
                 if parts.len() > 1 && parts[1].len() > 0 {
-                    parts[1].parse::<usize>().unwrap()
+                    Some(parts[1].parse::<usize>().unwrap())
                 } else {
                     //default:
-                    50 //todo global var dafür einbauen
+                    None
                 }
             },
         })

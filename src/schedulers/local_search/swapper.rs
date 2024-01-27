@@ -8,7 +8,8 @@ use std::time::Duration;
 
 use atoi::atoi;
 use clap::ValueEnum;
-use rand::Rng;
+use rand::{Rng, SeedableRng, thread_rng};
+use rand_chacha::ChaCha8Rng;
 use regex::Regex;
 
 use crate::Algorithm;
@@ -16,6 +17,7 @@ use crate::Algorithm::Swap;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
+use crate::input::seed_from_str;
 use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -29,14 +31,6 @@ pub struct Swapper {
     config: SwapConfig,
 }
 
-#[derive(Clone, Debug)]
-pub struct ConcreteSwapConfig {
-    swap_finding_tactic: fn(&Swapper, &Solution, &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
-    swap_acceptance_rule: fn(u32, u32, &ConcreteSwapConfig) -> bool,
-    decline_by_chance_percentage: Option<u8>,
-    number_of_solutions: usize,
-}
-
 impl Scheduler for Swapper {
     fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
         self.swap(good_solutions)
@@ -48,10 +42,10 @@ impl Scheduler for Swapper {
 }
 
 ///Tactic to find jobs to swap
-#[derive(Clone, Copy, Debug, ValueEnum)]
+#[derive(Clone, Copy, Debug)]
 pub enum SwapTactic {
     TwoJobBruteForce,
-    TwoJobRandomSwap,
+    TwoJobRandomSwap(usize), //fails_until_stop
 }
 
 ///Rule when to accept a swap
@@ -68,26 +62,6 @@ pub enum SwapAcceptanceRule {
     All,
 }
 
-impl SwapAcceptanceRule {
-    pub fn from_str(input: &str) -> Result<Self, String> {
-        match input {
-            "improvement" => Ok(Improvement),
-            "simulated-annealing" => Ok(SimulatedAnnealing),
-            "all" => Ok(All),
-            _ => {
-                //more complex param (probably)
-                if Regex::new(r"^decline-by-([0-9]|[1-9][0-9]|100)%-chance$").unwrap().is_match(input) {
-                    let p = atoi::<u8>(&input.as_bytes()[11..]).unwrap();
-                    Ok(DeclineByChance(p))
-                } else {
-                    Err(format!("invalid variant: {input}"))
-                }
-            }
-        }
-    }
-}
-
-
 impl Swapper {
     pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: SwapConfig) -> Self {
         Self {
@@ -102,17 +76,17 @@ impl Swapper {
     }
 
     fn accept_decline_by_chance_c(old_c_max: u32, new_c_max: u32, concrete_swap_config: &ConcreteSwapConfig) -> bool {
-        Self::accept_decline_by_chance(old_c_max, new_c_max, concrete_swap_config.decline_by_chance_percentage.unwrap())
+        Self::accept_decline_by_chance(old_c_max, new_c_max, concrete_swap_config)
     }
-    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, percentage: u8) -> bool {
-        let percentage = percentage as f64 / 100f64;
+    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, concrete_swap_config: &ConcreteSwapConfig) -> bool {
+        let percentage = concrete_swap_config.decline_by_chance_percentage.unwrap() as f64 / 100f64;
         debug_assert!(0f64 <= percentage);
         debug_assert!(1f64 >= percentage);
 
         if new_c_max > old_c_max {
             true
         } else {
-            let mut rng = rand::thread_rng();
+            let mut rng = concrete_swap_config.rng.clone().unwrap();
             rng.gen_bool(percentage)
         }
     }
@@ -133,9 +107,8 @@ impl Swapper {
             //get solutions:
             while good_solutions.get_solution_count() < self.config.number_of_solutions {
                 //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
-                sleep(Duration::from_millis(10));
+                sleep(Duration::from_millis(100));
                 log(String::from("waiting for enough good solutions to run Swap algorithm..."));
-                //todo 1 (logging)
             }
 
             let old_solutions = Arc::new(good_solutions.get_best_solutions(self.config.number_of_solutions)); //TODO (low prio) version einbauen mit eingabe von Solution auf der gearbeitet wird (zb RF laufen lassen und iwan dann swap drauf schmeißen) => bei den List schedulern ein bool hinzufügen ob das gemacht werden soll oder nicht
@@ -150,7 +123,7 @@ impl Swapper {
                     //new swap tactics can be added here:
                     let swap_finding_tactic_fn = match self.config.swap_finding_tactic {
                         TwoJobBruteForce => Self::find_brute_force_two_job_swap,
-                        TwoJobRandomSwap => Self::find_random_two_job_swap,
+                        TwoJobRandomSwap(_) => Self::find_random_two_job_swap,
                     };
 
                     //new swap acceptance rules can be added here:
@@ -162,16 +135,25 @@ impl Swapper {
                         }
                         All => Self::accept_all,
                     };
-                    let decline_by_chance_percentage = match self.config.swap_acceptance_rule {
-                        DeclineByChance(percentage) => {
-                            Some(percentage)
-                        }
+                    let random_swap_fails_until_stop = match self.config.swap_finding_tactic {
+                        TwoJobRandomSwap(fails_until_stop) => { Some(fails_until_stop) }
                         _ => { None }
                     };
+                    let decline_by_chance_percentage = match self.config.swap_acceptance_rule {
+                        DeclineByChance(percentage) => { Some(percentage) }
+                        _ => { None }
+                    };
+                    let rng = match self.config.rng_seed {
+                        None => { None }
+                        Some(seed) => { Some(ChaCha8Rng::from_seed(seed)) }
+                    };
+
                     let concrete_swap_config = ConcreteSwapConfig {
                         swap_finding_tactic: swap_finding_tactic_fn,
                         swap_acceptance_rule: swap_acceptance_rule_fn,
                         decline_by_chance_percentage,
+                        random_swap_fails_until_stop,
+                        rng,
                         number_of_solutions: self.config.number_of_solutions,
                     };
 
@@ -248,10 +230,9 @@ impl Swapper {
 
     /// 2 job random swap
     fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
-        //todo 1 , fails_until_stop:u8 als param mit aufnehmen -> dann auch bei RF
-        let mut rng = rand::thread_rng();
-        let mut fails: u8 = 0;
-
+        let mut rng = concrete_swap_config.rng.clone().unwrap();
+        let fails_until_stop = concrete_swap_config.random_swap_fails_until_stop.unwrap();
+        let mut fails: usize = 0;
         let machine_count = self.input.get_machine_count();
         let machine_jobs = solution.get_data().get_machine_jobs();
         let current_c_max = solution.get_data().get_c_max();
@@ -289,8 +270,8 @@ impl Swapper {
                 return Some((m1, j1, m2, j2));
             } else {
                 fails += 1;
-                if fails == 50 {
-                    //todo 1 (logging)
+                if fails == fails_until_stop {
+                    //todo 1 (logging error )
                     return None;
                 }
             }
@@ -314,11 +295,63 @@ impl Swapper {
     }
 }
 
+impl SwapTactic {
+    pub fn from_str(input: &str) -> Result<Self, String> { //TODO clap help schreiben + bei allen from_str methoden Err(format!("invalid variant: {input}")) hinzufügen!
+        match input {
+            "two-job-brute-force" => Ok(TwoJobBruteForce),
+            "two-job-random-swap" => {
+                //default:
+                Ok(TwoJobRandomSwap(50))
+            }
+            _ => {
+                //more complex param (probably)
+
+                if Regex::new(r"^two-job-random-swap-([0-9]+)$").unwrap().is_match(input) {
+                    let parts: Vec<&str> = input.split('-').collect();
+                    let fails_until_stop = atoi::<usize>(&parts[4].as_bytes()).unwrap();
+                    Ok(TwoJobRandomSwap(fails_until_stop))
+                } else {
+                    Err(format!("invalid variant: {input}"))
+                }
+            }
+        }
+    }
+}
+
+impl SwapAcceptanceRule {
+    pub fn from_str(input: &str) -> Result<Self, String> {
+        match input {
+            "improvement" => Ok(Improvement),
+            "simulated-annealing" => Ok(SimulatedAnnealing),
+            "all" => Ok(All),
+            _ => {
+                //more complex param (probably)
+                if Regex::new(r"^decline-by-([0-9]|[1-9][0-9]|100)%-chance$").unwrap().is_match(input) {
+                    let p = atoi::<u8>(&input.as_bytes()[11..]).unwrap();
+                    Ok(DeclineByChance(p))
+                } else {
+                    Err(format!("invalid variant: {input}"))
+                }
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SwapConfig {
     swap_finding_tactic: SwapTactic,
     swap_acceptance_rule: SwapAcceptanceRule,
+    number_of_solutions: usize,
+    rng_seed: Option<[u8; 32]>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ConcreteSwapConfig {
+    swap_finding_tactic: fn(&Swapper, &Solution, &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
+    swap_acceptance_rule: fn(u32, u32, &ConcreteSwapConfig) -> bool,
+    decline_by_chance_percentage: Option<u8>,
+    random_swap_fails_until_stop: Option<(usize)>,
+    rng: Option<ChaCha8Rng>,
     number_of_solutions: usize,
 }
 
@@ -328,10 +361,9 @@ impl FromStr for SwapConfig {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split(";").collect();
         Ok(SwapConfig {
-            //Todo  clap-help-text einfügen(semikolon verpflichtend)  + seeds
             swap_finding_tactic: {
                 if parts[0].len() > 0 {
-                    SwapTactic::from_str(parts[0], true).unwrap()
+                    SwapTactic::from_str(parts[0]).unwrap()
                 } else {
                     //default:
                     SwapTactic::TwoJobBruteForce
@@ -351,6 +383,20 @@ impl FromStr for SwapConfig {
                 } else {
                     //default:
                     1
+                }
+            },
+            rng_seed: { //TODO ACHTUNG  ;decline-by-32%-chance; wirft fehler und  ;decline-by-32%-chance;; nicht (so lassen oder ändern?)
+                if parts.len() > 3 { //nur bei ;;; wird seed generiert (bei ;;nicht!)
+                    if parts[3].len() > 0 {
+                        Some(seed_from_str(parts[3]))
+                    } else {
+                        //default: random seed
+                        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
+                        thread_rng().fill(&mut seed);
+                        Some(seed)
+                    }
+                } else {
+                    None
                 }
             },
         })

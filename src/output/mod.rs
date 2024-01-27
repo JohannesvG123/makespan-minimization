@@ -46,7 +46,7 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
             if Path::new(&path).exists() {
                 let mut file = OpenOptions::new().write(true).append(true).open(format!("{}{}", dir, "/solutions.txt")).unwrap();
                 if let Err(e) = write!(file, "{}", output_string) {
-                    eprintln!("Couldn't write to file todo: {}", e); //TODO logging
+                    eprintln!("Couldn't write to file todo: {}", e);
                 }
             } else {
                 //create dir+file:
