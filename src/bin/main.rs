@@ -1,7 +1,7 @@
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
-use chrono::Local;
 
+use chrono::Local;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 

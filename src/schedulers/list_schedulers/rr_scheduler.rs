@@ -55,6 +55,6 @@ impl RRScheduler {
             machine_jobs.assign_job(jobs[job_index], machine, job_index);
         }
 
-        Solution::new(RR, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(RR, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

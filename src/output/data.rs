@@ -35,7 +35,7 @@ impl Data {
     /// swap_indices=(machine_1_index, job_1_index, machine_2_index, job_2_index)
     pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>) {
         self.machine_jobs.swap_jobs(swap_indices, jobs);
-        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count);//TODO (low prio) Schedule.swap smart implementiert statt neuberechnung kann speedup bringen => wobeiman dann auch direkt so umbauen kann: solution hat nur machines workload und schedule wird nur beim output berechnet
+        self.schedule = Schedule::from_machine_jobs(self.get_machine_jobs(), jobs, machine_count); //TODO (low prio) Schedule.swap smart implementiert statt neuberechnung kann speedup bringen => wobeiman dann auch direkt so umbauen kann: solution hat nur machines workload und schedule wird nur beim output berechnet
         self.update_c_max(global_bounds);
     }
 

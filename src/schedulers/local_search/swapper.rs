@@ -1,12 +1,18 @@
 use std::cmp::max;
 use std::fmt::Debug;
+use std::str::FromStr;
+use std::string::ParseError;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
+use atoi::atoi;
+use clap::ValueEnum;
 use rand::Rng;
+use rayon::current_thread_index;
+use regex::Regex;
 
-use crate::Algorithm;
+use crate::{Algorithm};
 use crate::Algorithm::Swap;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
@@ -20,8 +26,14 @@ use crate::schedulers::scheduler::Scheduler;
 pub struct Swapper {
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
-    swap_finding_tactic: fn(&Swapper, &Solution) -> Option<(usize, usize, usize, usize)>,
-    swap_acceptance_rule: fn(u32, u32) -> bool,
+    config: SwapConfig,
+}
+
+#[derive(Clone, Debug)]
+pub struct ConcreteSwapConfig {
+    swap_finding_tactic: fn(&Swapper, &Solution, &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
+    swap_acceptance_rule: fn(u32, u32, &ConcreteSwapConfig) -> bool,
+    decline_by_chance_percentage: Option<u8>,
     number_of_solutions: usize,
 }
 
@@ -36,19 +48,19 @@ impl Scheduler for Swapper {
 }
 
 ///Tactic to find jobs to swap
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum SwapTactic {
     TwoJobBruteForce,
     TwoJobRandomSwap,
 }
 
 ///Rule when to accept a swap
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum SwapAcceptanceRule {
     ///accept swap if it improves c_max
     Improvement,
-    ///accept improvements & declines with a p-percent chance
-    DeclineByChance(f64),
+    ///accept improvements & declines with a p-percent chance (0<=p<=100)
+    DeclineByChance(u8),
     ///accept improvements & declines with ...todo (-> https://de.wikipedia.org/wiki/Simulated_Annealing)
     SimulatedAnnealing,
 
@@ -56,34 +68,44 @@ pub enum SwapAcceptanceRule {
     All,
 }
 
+impl SwapAcceptanceRule {
+    pub fn from_str(input: &str) -> Result<Self, String> {
+        match input {
+            "improvement" => Ok(Improvement),
+            "simulated-annealing" => Ok(SimulatedAnnealing),
+            "all" => Ok(All),
+            _ => {
+                //more complex param (probably)
+                if Regex::new(r"^decline-by-([0-9]|[1-9][0-9]|100)%-chance$").unwrap().is_match(input) {
+                    let p = atoi::<u8>(&input.as_bytes()[11..]).unwrap();
+                    Ok(DeclineByChance(p))
+                } else {
+                    Err(format!("invalid variant: {input}"))
+                }
+            }
+        }
+    }
+}
+
+
 impl Swapper {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, swap_tactic: SwapTactic, swap_acceptance_rule: SwapAcceptanceRule, number_of_solutions: usize) -> Self {
-        //new swap tactics can be added here:
-        let swap_finding_tactic_fn = match swap_tactic {
-            TwoJobBruteForce => { Self::find_brute_force_two_job_swap }
-            TwoJobRandomSwap => { Self::find_random_two_job_swap }
-        };
-
-        //new swap acceptance rules can be added here:
-        let swap_acceptance_rule_fn = match swap_acceptance_rule {
-            Improvement => { Self::accept_improvement }
-            DeclineByChance(percentage) => { Self::accept_decline_by_chance_tmp } //TODO 1 den parameter mit aufnehmen...
-            SimulatedAnnealing => { todo!() }
-            All => { Self::accept_all }
-        };
-
-
-        Self { input, global_bounds, swap_finding_tactic: swap_finding_tactic_fn, swap_acceptance_rule: swap_acceptance_rule_fn, number_of_solutions }
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: SwapConfig) -> Self {
+        Self {
+            input,
+            global_bounds,
+            config,
+        }
     }
 
-    fn accept_improvement(old_c_max: u32, new_c_max: u32) -> bool {
+    fn accept_improvement(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &ConcreteSwapConfig) -> bool {
         new_c_max > old_c_max
     }
 
-    fn accept_decline_by_chance_tmp(old_c_max: u32, new_c_max: u32) -> bool {
-        Self::accept_decline_by_chance(old_c_max, new_c_max, 0.1)
+    fn accept_decline_by_chance_c(old_c_max: u32, new_c_max: u32, concrete_swap_config: &ConcreteSwapConfig) -> bool {
+        Self::accept_decline_by_chance(old_c_max, new_c_max, concrete_swap_config.decline_by_chance_percentage.unwrap())
     }
-    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, percentage: f64) -> bool {
+    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, percentage: u8) -> bool {
+        let percentage = percentage as f64 / 100f64;
         debug_assert!(0f64 <= percentage);
         debug_assert!(1f64 >= percentage);
 
@@ -95,7 +117,7 @@ impl Swapper {
         }
     }
 
-    fn accept_all(_old_c_max: u32, _new_c_max: u32) -> bool {
+    fn accept_all(_old_c_max: u32, _new_c_max: u32, _concrete_swap_config: &ConcreteSwapConfig) -> bool {
         true
     }
 
@@ -107,32 +129,70 @@ impl Swapper {
 
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
-
-
+        println!("1T_ID:{:?}", current_thread_index());
         rayon::scope(move |s| {
+            println!("2T_ID:{:?}", current_thread_index());
             //get solutions:
-            while good_solutions.get_solution_count() < self.number_of_solutions { //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
+            while good_solutions.get_solution_count() < self.config.number_of_solutions {
+                //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
                 sleep(Duration::from_millis(10));
                 println!("zzzZzzZzzZzz")
                 //todo 1 (logging)
             }
 
-            let old_solutions = Arc::new(good_solutions.get_best_solutions(self.number_of_solutions)); //TODO (low prio) version einbauen mit eingabe von Solution auf der gearbeitet wird (zb RF laufen lassen und iwan dann swap drauf schmeißen) => bei den List schedulern ein bool hinzufügen ob das gemacht werden soll oder nicht
+            let old_solutions = Arc::new(good_solutions.get_best_solutions(self.config.number_of_solutions)); //TODO (low prio) version einbauen mit eingabe von Solution auf der gearbeitet wird (zb RF laufen lassen und iwan dann swap drauf schmeißen) => bei den List schedulern ein bool hinzufügen ob das gemacht werden soll oder nicht
             let best_c_max = old_solutions.last().unwrap().get_data().get_c_max();
 
-            for i in 0..self.number_of_solutions {
+            for i in 0..self.config.number_of_solutions {
                 let old_solutions = Arc::clone(&old_solutions);
                 let mut best_solution = Arc::clone(&best_solution_for_threads);
                 let good_solutions = good_solutions.clone();
+
                 s.spawn(move |_| {
+                    //new swap tactics can be added here:
+                    let swap_finding_tactic_fn = match self.config.swap_finding_tactic {
+                        TwoJobBruteForce => Self::find_brute_force_two_job_swap,
+                        TwoJobRandomSwap => Self::find_random_two_job_swap,
+                    };
+
+                    //new swap acceptance rules can be added here:
+                    let swap_acceptance_rule_fn: fn(u32, u32, &ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
+                        Improvement => Self::accept_improvement,
+                        DeclineByChance(percentage) => Self::accept_decline_by_chance_c,
+                        SimulatedAnnealing => {
+                            todo!()
+                        }
+                        All => Self::accept_all,
+                    };
+                    let decline_by_chance_percentage = match self.config.swap_acceptance_rule {
+                        DeclineByChance(percentage) => {
+                            Some(percentage)
+                        }
+                        _ => { None }
+                    };
+                    let concrete_swap_config = ConcreteSwapConfig {
+                        swap_finding_tactic: swap_finding_tactic_fn,
+                        swap_acceptance_rule: swap_acceptance_rule_fn,
+                        decline_by_chance_percentage,
+                        number_of_solutions: self.config.number_of_solutions,
+                    };
+                    println!("CONFIG::::{:?} {:?}", concrete_swap_config, self.config);
+
+                    println!("3T_ID:{:?}", current_thread_index());
                     let mut solution = old_solutions[i].clone();
 
                     //todo 1 (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
-                    while let Some(swap_indices) = (self.swap_finding_tactic)(self, &solution) {
-                        solution.get_mut_data().swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds));
+                    while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &concrete_swap_config) {
+                        solution.get_mut_data().swap_jobs(
+                            swap_indices,
+                            self.input.get_jobs(),
+                            self.input.get_machine_count(),
+                            Arc::clone(&self.global_bounds),
+                        );
                     }
 
                     solution.add_algorithm(Swap);
+                    solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
                     if solution.get_data().get_c_max() <= best_c_max {
                         let mut bs = best_solution.lock().unwrap();
                         *bs = solution.clone();
@@ -146,23 +206,33 @@ impl Swapper {
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    fn find_brute_force_two_job_swap(&self, solution: &Solution) -> Option<(usize, usize, usize, usize)> {
+    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();
         let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
-        let mut swap_indices: (usize, usize, usize, usize) = (0, 0, 0, 0);//(machine_1_index, job_1_index, machine_2_index, job_2_index)
+        let mut swap_indices: (usize, usize, usize, usize) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
         let mut swap_found = false;
 
         for m1 in 0..self.input.get_machine_count() {
-            for m2 in m1..self.input.get_machine_count() { //for all machine pairs {m1,m2}
-                if (current_heaviest_machines.len() == 1 && (current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2))) || (current_heaviest_machines.len() == 2 && current_heaviest_machines.contains(&m1) && current_heaviest_machines.contains(&m2)) { //vorherige (leichtere Bdg.): current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2)
+            for m2 in m1..self.input.get_machine_count() {
+                //for all machine pairs {m1,m2}
+                if (current_heaviest_machines.len() == 1 && (current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2))) || (current_heaviest_machines.len() == 2 && current_heaviest_machines.contains(&m1) && current_heaviest_machines.contains(&m2)) {
+                    //vorherige (leichtere Bdg.): current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2)
                     //only in this case we can improve our c_max
                     let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
                     let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
                     for j1 in 0..machine_1_jobs.len() {
-                        for j2 in 0..machine_2_jobs.len() { //for all job pairs (j1,j2) on (m1,m2)
-                            let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
-                            if (self.swap_acceptance_rule)(new_c_max, current_c_max) {
+                        for j2 in 0..machine_2_jobs.len() {
+                            //for all job pairs (j1,j2) on (m1,m2)
+                            let new_c_max = self.simulate_two_job_swap(
+                                m1,
+                                machine_1_jobs[j1],
+                                m2,
+                                machine_2_jobs[j2],
+                                machine_jobs,
+                                current_heaviest_machines.as_slice(),
+                            );
+                            if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
                                 swap_found = true;
                                 current_c_max = new_c_max;
                                 swap_indices = (m1, j1, m2, j2);
@@ -181,7 +251,8 @@ impl Swapper {
     }
 
     /// 2 job random swap
-    fn find_random_two_job_swap(&self, solution: &Solution) -> Option<(usize, usize, usize, usize)> {//todo 1 , fails_until_stop:u8 als param mit aufnehmen -> dann auch bei RF
+    fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
+        //todo 1 , fails_until_stop:u8 als param mit aufnehmen -> dann auch bei RF
         let mut rng = rand::thread_rng();
         let mut fails: u8 = 0;
 
@@ -194,13 +265,15 @@ impl Swapper {
             //generate random values
             let mut m1 = rng.gen_range(0..machine_count);
             let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
-            while machine_1_jobs.len() == 0 { // in case the machine is not used for the schedule
+            while machine_1_jobs.len() == 0 {
+                // in case the machine is not used for the schedule
                 m1 = rng.gen_range(0..machine_count);
                 machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             }
             let mut m2 = rng.gen_range(0..machine_count);
             let mut machine_2_jobs = machine_jobs.get_machine_jobs(m2);
-            while m2 == m1 || machine_2_jobs.len() == 0 { //cant swap from the same machine
+            while m2 == m1 || machine_2_jobs.len() == 0 {
+                //cant swap from the same machine
                 m2 = rng.gen_range(0..machine_count);
                 machine_2_jobs = machine_jobs.get_machine_jobs(m2);
             }
@@ -208,12 +281,20 @@ impl Swapper {
             let j2 = rng.gen_range(0..machine_2_jobs.len());
 
             //check swap
-            let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
-            if (self.swap_acceptance_rule)(new_c_max, current_c_max) {
+            let new_c_max = self.simulate_two_job_swap(
+                m1,
+                machine_1_jobs[j1],
+                m2,
+                machine_2_jobs[j2],
+                machine_jobs,
+                current_heaviest_machines.as_slice(),
+            );
+            if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
                 return Some((m1, j1, m2, j2));
             } else {
                 fails += 1;
-                if fails == 50 {//todo 1 (logging)
+                if fails == 50 {
+                    //todo 1 (logging)
                     return None;
                 }
             }
@@ -234,5 +315,48 @@ impl Swapper {
         } else {
             max_workload
         }
+    }
+}
+
+
+#[derive(Clone, Debug)]
+pub struct SwapConfig {
+    swap_finding_tactic: SwapTactic,
+    swap_acceptance_rule: SwapAcceptanceRule,
+    number_of_solutions: usize,
+}
+
+impl FromStr for SwapConfig {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = s.split(";").collect();
+        Ok(SwapConfig {
+            //Todo  clap-help-text einfügen(semikolon verpflichtend)  + seeds
+            swap_finding_tactic: {
+                if parts[0].len() > 0 {
+                    SwapTactic::from_str(parts[0], true).unwrap()
+                } else {
+                    //default:
+                    SwapTactic::TwoJobBruteForce
+                }
+            },
+            swap_acceptance_rule: {
+                if parts.len() > 1 && parts[1].len() > 0 {
+                    SwapAcceptanceRule::from_str(parts[1]).unwrap()
+                } else {
+                    //default:
+                    SwapAcceptanceRule::Improvement
+                }
+            },
+            number_of_solutions: {
+                if parts.len() > 2 && parts[2].len() > 0 {
+                    parts[2].parse::<usize>().unwrap()
+                } else {
+                    //default:
+                    1
+                }
+            },
+        })
     }
 }

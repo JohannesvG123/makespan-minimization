@@ -8,10 +8,10 @@ use permutation::Permutation;
 
 use crate::output::solution::Solution;
 
-pub mod solution;
 pub mod data;
 pub mod machine_jobs;
 pub mod schedule;
+pub mod solution;
 
 pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool) {
     if write {
@@ -22,13 +22,21 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
             for algorithm in solution.get_used_algorithms() {
                 algorithms_str.push_str(format!("{:?}_", algorithm).as_str());
             }
-            let filename = format!("{0}solution", algorithms_str);
-            let path = format!("data/{0}/{1}.txt", directory_name, filename);
-            println!("writing output in \"{}\" ...", path); //TODO logging (ganze methode)
+            let original_filename = format!("{0}solution", algorithms_str);
+            let mut filename = original_filename.clone();
             let dir = format!("data/{}", directory_name);
             if !Path::new(&dir).exists() {
                 fs::create_dir(&dir).unwrap();
             }
+            let mut path = format!("data/{0}/{1}.txt", directory_name, original_filename);
+            let mut i: usize = 0;
+            while Path::new(&path).exists() {
+                filename = original_filename.clone();
+                i += 1;
+                filename.push_str(&i.to_string());
+                path = format!("data/{0}/{1}.txt", directory_name, filename);
+            }
+            println!("writing output in \"{}\" ...", path); //TODO logging (ganze methode)
             let mut file = File::create(path).unwrap();
             file.write_all(output_string.as_bytes()).unwrap();
         } else {

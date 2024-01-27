@@ -20,7 +20,8 @@ fn read_input(path_buf: &PathBuf) -> String {
     }
 }
 
-fn parse_input(input_str: &str) -> SortedInput {//TODO (low prio) auf Tokenized umstellen...
+fn parse_input(input_str: &str) -> SortedInput {
+    //TODO (low prio) auf Tokenized umstellen...
     println!("parsing input...");
 
     let mut split = input_str.split_whitespace();
@@ -37,6 +38,6 @@ fn parse_input(input_str: &str) -> SortedInput {//TODO (low prio) auf Tokenized 
         jobs.pop();
         SortedInput::new(machine_count, jobs)
     } else {
-        panic!("invalid input! => check the input file")//wenns tokenized ist: evtl aussagekräftiger machen und sagen was falsch war
+        panic!("invalid input! => check the input file") //wenns tokenized ist: evtl aussagekräftiger machen und sagen was falsch war
     }
 }

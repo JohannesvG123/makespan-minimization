@@ -64,6 +64,6 @@ impl LPTScheduler {
             }
         }
 
-        Solution::new(LPT, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(LPT, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

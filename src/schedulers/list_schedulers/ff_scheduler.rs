@@ -53,6 +53,6 @@ impl FFScheduler {
             machine_jobs.assign_job(jobs[job_index], current_machine, job_index)
         }
 
-        Solution::new(FF, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(FF, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
     }
 }

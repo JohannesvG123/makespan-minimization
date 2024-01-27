@@ -47,11 +47,11 @@ impl GoodSolutions {
         }
     }
 
-    /// returns cloned best solution or None 
+    /// returns cloned best solution or None
     pub fn get_best_solution(&self) -> Option<Solution> {
         match self.solutions.first() {
-            None => { None }
-            Some((_, solution)) => { Some(solution) }
+            None => None,
+            Some((_, solution)) => Some(solution),
         }
     }
 
