@@ -51,7 +51,7 @@ impl RRScheduler {
                     return Solution::unsatisfiable(RR);
                 }
             }
-            machine += offset;
+            machine = (machine + offset).rem_euclid(self.input.get_machine_count());
 
             machine_jobs.assign_job(jobs[job_index], machine, job_index);
         }
