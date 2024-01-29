@@ -87,7 +87,7 @@ impl FromStr for RFConfig {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split(";").collect();
+        let parts: Vec<&str> = s.split(",").collect();
         Ok(RFConfig {
             rng_seed: {
                 if parts[0].len() > 0 {

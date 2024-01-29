@@ -124,7 +124,7 @@ struct Args {
 
     /// configurations for running the RF algo
     ///
-    /// (structure: "[rng_seed1];[fails_until_check1] ...", rng_seed-default=random seed, fails_until_check-default = machine_count)
+    /// (structure: "[rng_seed1],[fails_until_check1] ...", rng_seed-default=random seed, fails_until_check-default = machine_count)
     #[arg(long, value_name = "RF_CONFIG", num_args = 1.., requires = "rf", required_if_eq("rf", "true"))]
     rf_configs: Vec<RFConfig>,
 
@@ -138,7 +138,7 @@ struct Args {
 
     /// configurations for running the Swap algo
     ///
-    /// (structure: "[swap_finding_tactic1];[swap_acceptance_rule1];[number_of_solutions1][;[rng_seed1]] ...", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, rng_seed-default=random seed or none depending on number of ;'s)
+    /// (structure: "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1][,[rng_seed1]] ...", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, rng_seed-default=random seed or none depending on number of ;'s)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
     swap_configs: Vec<SwapConfig>,
 

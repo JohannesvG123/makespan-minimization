@@ -359,7 +359,7 @@ impl FromStr for SwapConfig {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split(";").collect();
+        let parts: Vec<&str> = s.split(",").collect();
         Ok(SwapConfig {
             swap_finding_tactic: {
                 if parts[0].len() > 0 {
@@ -385,7 +385,7 @@ impl FromStr for SwapConfig {
                     1
                 }
             },
-            rng_seed: { //TODO ACHTUNG  ;decline-by-32%-chance; wirft fehler und  ;decline-by-32%-chance;; nicht (so lassen oder ändern?)
+            rng_seed: { //TODO ACHTUNG  ,decline-by-32%-chance, wirft fehler und  ,decline-by-32%-chance,, nicht (so lassen oder ändern?)
                 if parts.len() > 3 { //nur bei ;;; wird seed generiert (bei ;;nicht!)
                     if parts[3].len() > 0 {
                         Some(seed_from_str(parts[3]))
