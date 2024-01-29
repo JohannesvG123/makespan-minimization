@@ -1,4 +1,3 @@
-
 import sys
 
 if len(sys.argv) < 3:
@@ -16,7 +15,7 @@ m = int(instancelines[0][3])
 # job sizes line
 jobsizes = [int(x) for x in instancelines[1][0:-1]]
 print(f"Parsed instance {instancefile}: n={n} m={m} sizes={jobsizes}")
-assert(len(jobsizes) == n) # broken instance file - number of job sizes does not match n ...
+assert (len(jobsizes) == n)  # broken instance file - number of job sizes does not match n ...
 
 # Parse output file
 found_solution = False
@@ -34,25 +33,26 @@ for line in open(outputfile, 'r').readlines():
     break
 
 # Check schedule
-assert(found_solution) # no solution line found!
-assert(len(machines) == n) # invalid number of scheduled machines given!
-assert(len(starttimes) == n) # invalid number of start times given!
-schedule = [[0 for t in range(cmax+1)] for i in range(m)]
+assert (found_solution)  # no solution line found!
+assert (len(machines) == n)  # invalid number of scheduled machines given!
+assert (len(starttimes) == n)  # invalid number of start times given!
+schedule = [[0 for t in range(cmax + 1)] for i in range(m)]
 for x in range(n):
-    machine, start = machines[x], starttimes[x] #ACHTUNG: habe hier das +1 raus genommen damit machine indices bei 0 starten
-    assert(machine >= 0 and machine < len(schedule)) # invalid machine index!
-    for t in range(start, start+jobsizes[x]):
-        assert(t < len(schedule[machine])) # schedule does not fit in [0, Cmax]!
-        assert(schedule[machine][t] == 0) # machine has multiple jobs at the same time!
-        schedule[machine][t] = x+1
+    machine, start = machines[x], starttimes[
+        x]  # ACHTUNG: habe hier das +1 raus genommen damit machine indices bei 0 starten
+    assert (machine >= 0 and machine < len(schedule))  # invalid machine index!
+    for t in range(start, start + jobsizes[x]):
+        assert (t < len(schedule[machine]))  # schedule does not fit in [0, Cmax]!
+        assert (schedule[machine][t] == 0)  # machine has multiple jobs at the same time!
+        schedule[machine][t] = x + 1
 any_machine_busy_before_cmax = False
 for sched in schedule:
-    any_machine_busy_before_cmax = any_machine_busy_before_cmax or sched[cmax-1] != 0
-    assert(sched[cmax] == 0) # some machine is still working at t=Cmax! (off-by-one?)
-assert(any_machine_busy_before_cmax) # all machines are done by Cmax-1, so Cmax is not tight!
+    any_machine_busy_before_cmax = any_machine_busy_before_cmax or sched[cmax - 1] != 0
+    assert (sched[cmax] == 0)  # some machine is still working at t=Cmax! (off-by-one?)
+assert (any_machine_busy_before_cmax)  # all machines are done by Cmax-1, so Cmax is not tight!
 
 # Print schedule
 print(f"Schedule '{outputfile}' validated: (correct, but not necessarily optimal).")
-print("t", [x for x in range(cmax+1)]) #damit wird der schedule ausgegeben (ACHTUNG nimmt viel Platz ein!!!)
+print("t", [x for x in range(cmax + 1)])  # damit wird der schedule ausgegeben (ACHTUNG nimmt viel Platz ein!!!)
 for i in range(len(schedule)):
-    print(str(i+1), schedule[i])
+    print(str(i + 1), schedule[i])

@@ -1,6 +1,6 @@
-import sys
 import os
 import subprocess
+import sys
 
 # is quick&dirty aber funktioniert haha
 if len(sys.argv) < 2:
