@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 # run config on all instances (==.txt files) in benchmarks directory
 # example config: "--bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,,"
@@ -12,6 +13,8 @@ args = sys.argv[1]
 
 os.system('cargo build')
 
+start_time = time.time()
+
 for file in os.listdir("./benchmarks"):
     if os.path.isfile('./benchmarks/' + file) and ".txt" in file:
         print("starting with input: '" + file + "'")
@@ -20,3 +23,6 @@ for file in os.listdir("./benchmarks"):
         # os.system('target\debug\makespan-minimization.exe --path ' + './benchmarks/' + file + ' --bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,, --write --write-separate-files')
         # os.system('cargo run --bin makespan-minimization -- --path ' + file + ' --bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,, --write --write-separate-files')
         print("end with input: '" + file + "' -----------------------\n")
+
+end_time = time.time()
+print(f"time: {end_time - start_time} sec")
