@@ -2,6 +2,8 @@ import os
 import sys
 import time
 
+# working directory must be "/makespan-minimization"!
+
 # run config on all instances (==.txt files) in benchmarks directory
 # example config: "--bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,,"
 
