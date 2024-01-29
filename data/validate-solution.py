@@ -52,7 +52,7 @@ for sched in schedule:
 assert (any_machine_busy_before_cmax)  # all machines are done by Cmax-1, so Cmax is not tight!
 
 # Print schedule
-print(f"Schedule '{outputfile}' validated: (correct, but not necessarily optimal).")
+print("validated: (correct, but not necessarily optimal).")
 # with open(f"validation_results{instancefile}.txt", "w") as text_file: #damit kann man evtl in file schreiben
 #    print(f"result for {outputfile}: correct, but not necessarily optimal", file=text_file)
 # print("t", [x for x in range(cmax+1)]) #damit wird der schedule ausgegeben (ACHTUNG nimmt viel Platz ein!!!)
