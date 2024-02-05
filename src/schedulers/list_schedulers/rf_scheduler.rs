@@ -1,11 +1,13 @@
 use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::Arc;
+use std::time::Instant;
 
+use permutation::Permutation;
 use rand::{Rng, SeedableRng, thread_rng};
 use rand_chacha::ChaCha8Rng;
 
-use crate::Algorithm;
+use crate::{Algorithm, Args};
 use crate::Algorithm::RF;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
@@ -23,8 +25,8 @@ pub struct RFScheduler {
 }
 
 impl Scheduler for RFScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
-        self.random_fit()
+    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.random_fit(args, perm, start_time)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -38,7 +40,7 @@ impl RFScheduler {
     }
 
     /// Assigns the jobs to random machines
-    pub fn random_fit(&self) -> Solution {
+    pub fn random_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", RF));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
@@ -60,7 +62,8 @@ impl RFScheduler {
             while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
                 fails += 1;
                 if fails == fails_until_check {
-                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO (low prio) hier kann evtl speedup erreicht werden (volle maschienen halten) / oder lässt man den einf komplett raus?
+                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check
+                        log(String::from("performed satisfiability check because fails_until_check was reached"));
                         fails = 0;
                     } else {
                         log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF));
@@ -73,7 +76,7 @@ impl RFScheduler {
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
 
-        Solution::new(RF, Some(format!("{:?}", self.config)), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds)) //TODO vllt display implementieren für die config
+        Solution::new(RF, Some(format!("{:?}", self.config)), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time) //TODO vllt display implementieren für die config
     }
 }
 

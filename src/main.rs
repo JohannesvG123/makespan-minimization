@@ -1,17 +1,20 @@
-use std::fmt;
+use std::{fmt, fs};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{DerefMut, DivAssign};
+use std::ops::{Deref, DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::String;
 use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 
-use chrono::Local;
+use atoi::atoi;
 use clap::{arg, FromArgMatches, Parser, Subcommand, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
+use rayon::spawn;
 
 use crate::Algorithm::{BF, FF, LPT, RF, RR, Swap};
 use crate::global_bounds::bounds::Bounds;
@@ -59,17 +62,20 @@ fn main() {
 
     let mut sorted_input = get_input(&args.path);
     let input = sorted_input.get_input();
+    let perm = sorted_input.get_permutation();
 
     let thread_pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build().unwrap();
-    let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input)));
+    let tmp_opt = tmp_get_opt(&args.path);
+    let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input), tmp_opt));
     let good_solutions = GoodSolutions::new(args.num_solutions);
 
-    let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::new(sorted_input.get_permutation()), Arc::clone(&args), good_solutions.clone());
+    let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone());
 
-    //Zeitmessung
-    log(format!("START: {}", Local::now().format("%H:%M:%S%.f")));
+    //log(format!("START: {}", Local::now().format("%H:%M:%S%.f")));
+    let start_time = std::time::Instant::now();
+    let timeout_duration = Duration::from_secs(args.timeout_after);
 
-    thread_pool.scope(move |scope| {
+    thread_pool.spawn(move || {
         for algorithm in algos.iter() {
             let mut config_count: usize = 1;
             if algorithm == &RF {
@@ -80,19 +86,37 @@ fn main() {
 
             for current_config_id in 0..config_count {
                 //clone references to use them in spawned threads:
-                let (algorithm, good_solutions, input, args, global_bounds) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds));
 
-                scope.spawn(move |_| {
-                    let mut scheduler = algorithm_map[algorithm](input, global_bounds, args, current_config_id);
-                    let solution = scheduler.schedule(good_solutions.clone());
+                let (algorithm, good_solutions, input, args, global_bounds, perm) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm));
+
+                spawn(move || {
+                    let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id);
+                    let solution = scheduler.schedule(good_solutions.clone(), args, perm, start_time);
                     good_solutions.add_solution(solution);
                 });
             }
         }
     });
 
-    log(format!("END: {}", Local::now().format("%H:%M:%S%.f")));
+    while start_time.elapsed() < timeout_duration {
+        sleep(Duration::from_millis(100)); //hier kann die Genauigkeit angepasst werden
+    }
+
+    log(format!("END after: {:?} (OPT not necessarily found)", start_time.elapsed()));
     good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
+}
+
+fn tmp_get_opt(path_buf: &PathBuf) -> Option<u32> { //tmp
+    let input_str = match fs::read_to_string(path_buf) {
+        Ok(str) => str,
+        Err(e) => panic!("{}", e),
+    };
+    match input_str.find("OPT:") {
+        None => { None }
+        Some(i) => {
+            atoi::<u32>(&input_str.as_bytes()[i + 4..])
+        }
+    }
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -161,6 +185,14 @@ struct Args {
     /// How many good solutions to store
     #[arg(long, default_value = "50")]
     num_solutions: usize,
+
+    /// execution will be stopped after given amount of seconds
+    #[arg(long, default_value = "10")]
+    timeout_after: u64,
+
+    /// (temporary): optimal c_max of the given problem
+    #[arg(long)]
+    opt: Option<u32>,
 }
 
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, Copy)]

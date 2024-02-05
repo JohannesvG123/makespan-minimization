@@ -1,6 +1,9 @@
 use std::sync::Arc;
+use std::time::Instant;
 
-use crate::Algorithm;
+use permutation::Permutation;
+
+use crate::{Algorithm, Args};
 use crate::Algorithm::BF;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
@@ -16,8 +19,8 @@ pub struct BFScheduler {
 }
 
 impl Scheduler for BFScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
-        self.best_fit()
+    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.best_fit(args, perm, start_time)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -31,7 +34,7 @@ impl BFScheduler {
     }
 
     /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned
-    pub fn best_fit(&self) -> Solution {
+    pub fn best_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", BF));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
@@ -59,6 +62,6 @@ impl BFScheduler {
             machine_jobs.assign_job(jobs[job_index], best_machine, job_index);
         }
 
-        Solution::new(BF, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(BF, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
     }
 }

@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::input::sorted_input::SortedInput;
+use crate::output::log;
 
 pub mod input;
 pub mod sorted_input;
@@ -12,7 +13,7 @@ pub fn get_input(path_buf: &PathBuf) -> SortedInput {
 }
 
 fn read_input(path_buf: &PathBuf) -> String {
-    println!("reading input...");
+    log(String::from("reading input..."));
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,
@@ -21,9 +22,17 @@ fn read_input(path_buf: &PathBuf) -> String {
 }
 
 fn parse_input(input_str: &str) -> SortedInput {
-    println!("parsing input...");
+    log(String::from("parsing input..."));
 
-    let mut split = input_str.split_whitespace(); //TODO (low prio) auf Tokenized umstellen...
+    let mut split = match input_str.contains(";") {
+        true => {
+            //tmp_opt case:
+            (input_str.split("OPT").collect::<Vec<_>>()[0]).split_whitespace()
+        }
+        false => { input_str.split_whitespace() }
+    };//tmp wieder rauslöschen und drunter auskommentieren (nur für tmp opt benötigt)
+
+    //let mut split = input_str.split_whitespace(); //TODO (low prio) auf Tokenized umstellen...
 
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();

@@ -1,6 +1,9 @@
 use std::sync::Arc;
+use std::time::Instant;
 
-use crate::Algorithm;
+use permutation::Permutation;
+
+use crate::{Algorithm, Args};
 use crate::Algorithm::RR;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
@@ -16,8 +19,8 @@ pub struct RRScheduler {
 }
 
 impl Scheduler for RRScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
-        self.round_robin()
+    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.round_robin(args, perm, start_time)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -31,7 +34,7 @@ impl RRScheduler {
     }
 
     /// Round Robin job assignment
-    pub fn round_robin(&self) -> Solution {
+    pub fn round_robin(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", RR));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
@@ -56,6 +59,6 @@ impl RRScheduler {
             machine_jobs.assign_job(jobs[job_index], machine, job_index);
         }
 
-        Solution::new(RR, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(RR, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
     }
 }

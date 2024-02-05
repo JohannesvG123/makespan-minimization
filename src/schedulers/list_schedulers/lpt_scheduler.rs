@@ -1,7 +1,10 @@
 use std::sync::Arc;
+use std::time::Instant;
 
-use crate::Algorithm;
-use crate::Algorithm::{BF, LPT};
+use permutation::Permutation;
+
+use crate::{Algorithm, Args};
+use crate::Algorithm::LPT;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
@@ -16,8 +19,8 @@ pub struct LPTScheduler {
 }
 
 impl Scheduler for LPTScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
-        self.longest_processing_time()
+    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.longest_processing_time(args, perm,start_time)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -31,7 +34,7 @@ impl LPTScheduler {
     }
 
     /// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)
-    fn longest_processing_time(&self) -> Solution {
+    fn longest_processing_time(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", LPT));
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
@@ -65,6 +68,6 @@ impl LPTScheduler {
             }
         }
 
-        Solution::new(LPT, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds))
+        Solution::new(LPT, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
     }
 }

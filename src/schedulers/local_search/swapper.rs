@@ -4,15 +4,16 @@ use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use atoi::atoi;
 use clap::ValueEnum;
+use permutation::Permutation;
 use rand::{Rng, SeedableRng, thread_rng};
 use rand_chacha::ChaCha8Rng;
 use regex::Regex;
 
-use crate::Algorithm;
+use crate::{Algorithm, Args};
 use crate::Algorithm::Swap;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
@@ -32,8 +33,8 @@ pub struct Swapper {
 }
 
 impl Scheduler for Swapper {
-    fn schedule(&mut self, good_solutions: GoodSolutions) -> Solution {
-        self.swap(good_solutions)
+    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.swap(good_solutions, args, perm, start_time)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -98,7 +99,7 @@ impl Swapper {
     /// swaps jobs of specified good solution(s) to create better one(s)
     /// the newly created solutions get stored in good_solutions
     /// the best one gets returned
-    fn swap(&self, good_solutions: GoodSolutions) -> Solution {
+    fn swap(&self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", Swap));
 
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
@@ -106,7 +107,7 @@ impl Swapper {
         rayon::scope(move |s| {
             //get solutions:
             while good_solutions.get_solution_count() < self.config.number_of_solutions {
-                //TODO 1 should terminate methode hier aufrufen (iwan abbruch)
+                //TODO 1 should terminate methode hier aufrufen (iwan abbruch -> durch cmd arg spezifizieren)
                 sleep(Duration::from_millis(100));
                 log(String::from("waiting for enough good solutions to run Swap algorithm..."));
             }
@@ -117,6 +118,8 @@ impl Swapper {
             for i in 0..self.config.number_of_solutions {
                 let old_solutions = Arc::clone(&old_solutions);
                 let mut best_solution = Arc::clone(&best_solution_for_threads);
+                let perm = Arc::clone(&perm);
+                let args = Arc::clone(&args);
                 let good_solutions = good_solutions.clone();
 
                 s.spawn(move |_| {
@@ -161,12 +164,7 @@ impl Swapper {
 
                     //todo 1 (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
                     while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &concrete_swap_config) {
-                        solution.get_mut_data().swap_jobs(
-                            swap_indices,
-                            self.input.get_jobs(),
-                            self.input.get_machine_count(),
-                            Arc::clone(&self.global_bounds),
-                        );
+                        solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
                     }
 
                     solution.add_algorithm(Swap);
@@ -296,7 +294,7 @@ impl Swapper {
 }
 
 impl SwapTactic {
-    pub fn from_str(input: &str) -> Result<Self, String> { //TODO clap help schreiben + bei allen from_str methoden Err(format!("invalid variant: {input}")) hinzufügen!
+    pub fn from_str(input: &str) -> Result<Self, String> {
         match input {
             "two-job-brute-force" => Ok(TwoJobBruteForce),
             "two-job-random-swap" => {

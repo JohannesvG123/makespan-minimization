@@ -7,7 +7,7 @@ use crate::input::input::Input;
 #[derive(Debug)]
 pub struct SortedInput {
     input: Arc<Input>,
-    permutation: Permutation, //used for sorting and reversing the sorting
+    permutation: Arc<Permutation>, //used for sorting and reversing the sorting
 }
 
 impl SortedInput {
@@ -21,19 +21,15 @@ impl SortedInput {
 
         Self {
             input: Arc::new(input),
-            permutation,
+            permutation: Arc::new(permutation),
         }
     }
 
-    pub fn get_input(&self) -> Arc<Input> { //todo (low prio) &Input zurückgeben und alles daran anpassen
-        self.input.clone()
+    pub fn get_input(&self) -> Arc<Input> {
+        Arc::clone(&self.input)
     }
 
-    pub fn get_mut_permutation(&mut self) -> &mut Permutation {
-        &mut self.permutation
-    }
-
-    pub fn get_permutation(&self) -> &Permutation {
-        &self.permutation
+    pub fn get_permutation(&self) -> Arc<Permutation> {
+        Arc::clone(&self.permutation)
     }
 }

@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 
+use chrono::Local;
 use permutation::Permutation;
 use rayon::current_thread_index;
 
@@ -14,7 +15,7 @@ pub mod machine_jobs;
 pub mod schedule;
 pub mod solution;
 
-pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool) {
+pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool) {
     if write {
         let output_string = solution.to_output_string(perm);
 
@@ -40,7 +41,6 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
             let mut file = File::create(path).unwrap();
             file.write_all(output_string.as_bytes()).unwrap();
         } else {
-            //TODO low prio in diesem falll hier noch ne datei mit properties oder so in das directory weils sonst ja leer ist
             let dir = format!("data/{}", directory_name);
             let path = format!("{}{}", dir, "/solutions.txt");
             if Path::new(&path).exists() {
@@ -56,17 +56,29 @@ pub fn output_solution(solution: &Solution, perm: Arc<&Permutation>, write: bool
             }
         }
     } else {
-        println!("{}", solution); //TODO (low prio) hier evtl nur c_max ausgeben für die übersichtilichkeit
+        log(solution.to_string());
+    }
+}
+
+pub fn get_directory_name(directory_name: Option<String>, input_file_name: &str) -> String {
+    match directory_name {
+        None => {
+            let date = Local::now();
+            format!("{0}_solution_{1}", input_file_name, date.format("%Y-%m-%d_%H-%M-%S"))
+        }
+        Some(str) => str.to_string()
     }
 }
 
 ///used for logging (also prints the current thread index if available)
 pub fn log(message: String) {
-    let thread_opt = current_thread_index();
-    let thread = match thread_opt {
-        None => { String::new() }
-        Some(t) => { format!("thread_{}: ", t) }
-    };
+    if true { //TODO 1 cmd arg hinzufügen damit in dem fall nix geprinted wird und nur die beste solution ausgegeben wird?-> Fragen
+        let thread_opt = current_thread_index();
+        let thread = match thread_opt {
+            None => { String::new() }
+            Some(t) => { format!("thread_{}: ", t) }
+        };
 
-    println!("{}{}", thread, message)
+        println!("{}{}", thread, message)
+    }
 }
