@@ -69,7 +69,7 @@ impl Bounds {
                     if new_upper_bound == opt_c_max {
                         log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()));
                         let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                        output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false);
+                        output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true);
                         exit(0)
                     }
                 }

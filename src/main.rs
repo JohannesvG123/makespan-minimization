@@ -190,9 +190,6 @@ struct Args {
     #[arg(long, default_value = "10")]
     timeout_after: u64,
 
-    /// (temporary): optimal c_max of the given problem
-    #[arg(long)]
-    opt: Option<u32>,
 }
 
 #[derive(Clone, ValueEnum, Debug, Eq, PartialEq, Hash, Enum, Copy)]
