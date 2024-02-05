@@ -52,7 +52,7 @@ fn parse_input(input_str: &str) -> SortedInput {
 
 pub fn seed_from_str(part: &str) -> [u8; 32] {
     let seed_part = part.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
-    let seed_parts: Vec<&str> = seed_part.split(",").collect();
+    let seed_parts: Vec<&str> = seed_part.split("|").collect();
 
     let mut seed: [u8; 32] = [0; 32];
     for i in 0..seed_parts.len() {

@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::fmt::Debug;
+use std::ops::Range;
 use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::{Arc, Mutex};
@@ -59,6 +60,8 @@ pub enum SwapAcceptanceRule {
     ///accept improvements & declines with ...todo (-> https://de.wikipedia.org/wiki/Simulated_Annealing)
     SimulatedAnnealing,
 
+    ///accept only declines of c_max (used to get out of local minimum)
+    Decline,
     ///accept all swaps independent of c_max
     All,
 }
@@ -72,14 +75,14 @@ impl Swapper {
         }
     }
 
-    fn accept_improvement(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &ConcreteSwapConfig) -> bool {
+    fn accept_improvement(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         new_c_max > old_c_max
     }
 
-    fn accept_decline_by_chance_c(old_c_max: u32, new_c_max: u32, concrete_swap_config: &ConcreteSwapConfig) -> bool {
+    fn accept_decline_by_chance_c(old_c_max: u32, new_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         Self::accept_decline_by_chance(old_c_max, new_c_max, concrete_swap_config)
     }
-    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, concrete_swap_config: &ConcreteSwapConfig) -> bool {
+    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         let percentage = concrete_swap_config.decline_by_chance_percentage.unwrap() as f64 / 100f64;
         debug_assert!(0f64 <= percentage);
         debug_assert!(1f64 >= percentage);
@@ -87,12 +90,15 @@ impl Swapper {
         if new_c_max > old_c_max {
             true
         } else {
-            let mut rng = concrete_swap_config.rng.clone().unwrap();
-            rng.gen_bool(percentage)
+            concrete_swap_config.rng_gen_bool(percentage)
         }
     }
 
-    fn accept_all(_old_c_max: u32, _new_c_max: u32, _concrete_swap_config: &ConcreteSwapConfig) -> bool {
+    fn accept_decline(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+        new_c_max < old_c_max
+    }
+
+    fn accept_all(_old_c_max: u32, _new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         true
     }
 
@@ -130,12 +136,13 @@ impl Swapper {
                     };
 
                     //new swap acceptance rules can be added here:
-                    let swap_acceptance_rule_fn: fn(u32, u32, &ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
+                    let swap_acceptance_rule_fn: fn(u32, u32, &mut ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
                         Improvement => Self::accept_improvement,
                         DeclineByChance(percentage) => Self::accept_decline_by_chance_c,
                         SimulatedAnnealing => {
                             todo!()
                         }
+                        SwapAcceptanceRule::Decline => Self::accept_decline,
                         All => Self::accept_all,
                     };
                     let random_swap_fails_until_stop = match self.config.swap_finding_tactic {
@@ -151,7 +158,7 @@ impl Swapper {
                         Some(seed) => { Some(ChaCha8Rng::from_seed(seed)) }
                     };
 
-                    let concrete_swap_config = ConcreteSwapConfig {
+                    let mut concrete_swap_config = ConcreteSwapConfig {
                         swap_finding_tactic: swap_finding_tactic_fn,
                         swap_acceptance_rule: swap_acceptance_rule_fn,
                         decline_by_chance_percentage,
@@ -162,14 +169,14 @@ impl Swapper {
 
                     let mut solution = old_solutions[i].clone();
 
-                    //todo 1 (low prio) params hinzufügen um zu steuern ob man ne tactic um aus local min zu kommen machen will oder net (2.erst wenn kein guter mehr gefunden wird schlechten erlauben 2.1 den am wenigsten schlechten 2.2 random one 2.3 einen der maximal x% schlechter ist (was wählt man für ein x?))
-                    while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &concrete_swap_config) {
+                    while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                         solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
+                        self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo .clone ><
                     }
 
                     solution.add_algorithm(Swap);
                     solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
-                    if solution.get_data().get_c_max() <= best_c_max {
+                    if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method
                         let mut bs = best_solution.lock().unwrap();
                         *bs = solution.clone();
                     }
@@ -182,7 +189,7 @@ impl Swapper {
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
+    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut current_c_max = solution.get_data().get_c_max();
         let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
@@ -227,8 +234,7 @@ impl Swapper {
     }
 
     /// 2 job random swap
-    fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
-        let mut rng = concrete_swap_config.rng.clone().unwrap();
+    fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
         let fails_until_stop = concrete_swap_config.random_swap_fails_until_stop.unwrap();
         let mut fails: usize = 0;
         let machine_count = self.input.get_machine_count();
@@ -238,22 +244,22 @@ impl Swapper {
 
         loop {
             //generate random values
-            let mut m1 = rng.gen_range(0..machine_count);
+            let mut m1 = concrete_swap_config.rng_gen_range((0..machine_count));
             let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             while machine_1_jobs.len() == 0 {
                 // in case the machine is not used for the schedule
-                m1 = rng.gen_range(0..machine_count);
+                m1 = concrete_swap_config.rng_gen_range(0..machine_count);
                 machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             }
-            let mut m2 = rng.gen_range(0..machine_count);
+            let mut m2 = concrete_swap_config.rng_gen_range(0..machine_count);
             let mut machine_2_jobs = machine_jobs.get_machine_jobs(m2);
             while m2 == m1 || machine_2_jobs.len() == 0 {
                 //cant swap from the same machine
-                m2 = rng.gen_range(0..machine_count);
+                m2 = concrete_swap_config.rng_gen_range(0..machine_count);
                 machine_2_jobs = machine_jobs.get_machine_jobs(m2);
             }
-            let j1 = rng.gen_range(0..machine_1_jobs.len());
-            let j2 = rng.gen_range(0..machine_2_jobs.len());
+            let j1 = concrete_swap_config.rng_gen_range(0..machine_1_jobs.len());
+            let j2 = concrete_swap_config.rng_gen_range(0..machine_2_jobs.len());
 
             //check swap
             let new_c_max = self.simulate_two_job_swap(
@@ -270,6 +276,7 @@ impl Swapper {
                 fails += 1;
                 if fails == fails_until_stop {
                     //todo 1 (logging error )
+                    println!("TODO error reached {} fails (2JobRandomSwap)", fails_until_stop);
                     return None;
                 }
             }
@@ -345,12 +352,36 @@ pub struct SwapConfig {
 
 #[derive(Clone, Debug)]
 pub struct ConcreteSwapConfig {
-    swap_finding_tactic: fn(&Swapper, &Solution, &ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
-    swap_acceptance_rule: fn(u32, u32, &ConcreteSwapConfig) -> bool,
+    swap_finding_tactic: fn(&Swapper, &Solution, &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
+    swap_acceptance_rule: fn(u32, u32, &mut ConcreteSwapConfig) -> bool,
     decline_by_chance_percentage: Option<u8>,
     random_swap_fails_until_stop: Option<(usize)>,
     rng: Option<ChaCha8Rng>,
     number_of_solutions: usize,
+}
+
+impl ConcreteSwapConfig {
+    pub fn rng_gen_range(&mut self, range: Range<usize>) -> usize {
+        match &mut self.rng {
+            None => {
+                todo!("errorrr not reachable1")
+            }
+            Some(r) => {
+                r.gen_range(range)
+            }
+        }
+    }
+
+    pub fn rng_gen_bool(&mut self, p: f64) -> bool {
+        match &mut self.rng {
+            None => {
+                todo!("errorrr not reachable2")
+            }
+            Some(r) => {
+                r.gen_bool(p)
+            }
+        }
+    }
 }
 
 impl FromStr for SwapConfig {
@@ -384,7 +415,7 @@ impl FromStr for SwapConfig {
                 }
             },
             rng_seed: { //TODO ACHTUNG  ,decline-by-32%-chance, wirft fehler und  ,decline-by-32%-chance,, nicht (so lassen oder ändern?)
-                if parts.len() > 3 { //nur bei ;;; wird seed generiert (bei ;;nicht!)
+                if parts.len() > 3 { //nur bei ,,, wird seed generiert (bei ,,nicht!)
                     if parts[3].len() > 0 {
                         Some(seed_from_str(parts[3]))
                     } else {
