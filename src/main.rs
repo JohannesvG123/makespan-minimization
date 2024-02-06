@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut, DivAssign};
 use std::path::PathBuf;
+use std::process::exit;
 use std::str::FromStr;
 use std::string::String;
 use std::sync::Arc;
@@ -14,7 +15,6 @@ use clap::{arg, FromArgMatches, Parser, Subcommand, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
-use rayon::spawn;
 
 use crate::Algorithm::{BF, FF, LPT, RF, RR, Swap};
 use crate::global_bounds::bounds::Bounds;
@@ -76,33 +76,39 @@ fn main() {
     let timeout_duration = Duration::from_secs(args.timeout_after);
 
     thread_pool.spawn(move || {
-        for algorithm in algos.iter() {
-            let mut config_count: usize = 1;
-            if algorithm == &RF {
-                config_count = args.rf_configs.len();
-            } else if algorithm == &Swap {
-                config_count = args.swap_configs.len();
+        let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone());
+        rayon::scope(move |s| {
+            for algorithm in algos.iter() {
+                let mut config_count: usize = 1;
+                if algorithm == &RF {
+                    config_count = args.rf_configs.len();
+                } else if algorithm == &Swap {
+                    config_count = args.swap_configs.len();
+                }
+
+                for current_config_id in 0..config_count {
+                    //clone references to use them in spawned threads:
+
+                    let (algorithm, good_solutions, input, args, global_bounds, perm) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm));
+
+                    s.spawn(move |_| {
+                        let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id);
+                        let solution = scheduler.schedule(good_solutions.clone(), args, perm, start_time);
+                        good_solutions.add_solution(solution);
+                    });
+                }
             }
-
-            for current_config_id in 0..config_count {
-                //clone references to use them in spawned threads:
-
-                let (algorithm, good_solutions, input, args, global_bounds, perm) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm));
-
-                spawn(move || {
-                    let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id);
-                    let solution = scheduler.schedule(good_solutions.clone(), args, perm, start_time);
-                    good_solutions.add_solution(solution);
-                });
-            }
-        }
+        });
+        log(format!("END (all algorithms finished) after: {:?} (OPT not necessarily found)", start_time.elapsed()));
+        good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
+        exit(0)
     });
 
     while start_time.elapsed() < timeout_duration {
         sleep(Duration::from_millis(100)); //hier kann die Genauigkeit angepasst werden
     }
 
-    log(format!("END after: {:?} (OPT not necessarily found)", start_time.elapsed()));
+    log(format!("END (timeout) after: {:?} (OPT not necessarily found)", start_time.elapsed()));
     good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
 }
 
