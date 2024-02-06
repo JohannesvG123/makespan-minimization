@@ -7,13 +7,13 @@ use crate::output::log;
 pub mod input;
 pub mod sorted_input;
 
-pub fn get_input(path_buf: &PathBuf) -> SortedInput {
-    let input_str = read_input(path_buf);
-    parse_input(&input_str)
+pub fn get_input(path_buf: &PathBuf,measurement:bool) -> SortedInput {
+    let input_str = read_input(path_buf,measurement);
+    parse_input(&input_str,measurement)
 }
 
-fn read_input(path_buf: &PathBuf) -> String {
-    log(String::from("reading input..."));
+fn read_input(path_buf: &PathBuf,measurement:bool) -> String {
+    log(String::from("\nreading input..."),false,measurement);
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,
@@ -21,8 +21,8 @@ fn read_input(path_buf: &PathBuf) -> String {
     }
 }
 
-fn parse_input(input_str: &str) -> SortedInput {
-    log(String::from("parsing input..."));
+fn parse_input(input_str: &str,measurement:bool) -> SortedInput {
+    log(String::from("parsing input..."),false,measurement);
 
     let mut split = match input_str.contains(";") {
         true => {

@@ -62,22 +62,22 @@ impl Bounds {
         let date = Local::now();
         let prev = self.upper_bound.fetch_min(new_upper_bound, Ordering::AcqRel);
         if new_upper_bound < prev {
-            log(format!("NEW upper_bound:{}->{} (after: {:?})", prev, new_upper_bound, start_time.elapsed()));
+            log(format!("NEW upper_bound:{}->{} (after: {:?})", prev, new_upper_bound, start_time.elapsed()),true,args.measurement);
             match self.tmp_opt { //tmp löschen
                 None => {}
                 Some(opt_c_max) => {
                     if new_upper_bound == opt_c_max {
-                        log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()));
+                        log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()),true,args.measurement);
                         let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                        output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true);
+                        output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true,args.measurement);
                         exit(0)
                     }
                 }
             }
             if new_upper_bound == self.get_lower_bound() {
-                log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()));
+                log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()),true,args.measurement);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false,args.measurement);
                 exit(0)
             }
         }
@@ -87,11 +87,11 @@ impl Bounds {
         let date = Local::now();
         let prev = self.upper_bound.fetch_max(new_lower_bound, Ordering::AcqRel);
         if new_lower_bound > prev {
-            log(format!("NEW lower_bound:{}->{} (after: {:?})", prev, new_lower_bound, start_time.elapsed()));
+            log(format!("NEW lower_bound:{}->{} (after: {:?})", prev, new_lower_bound, start_time.elapsed()),true,args.measurement);
             if self.get_upper_bound() == new_lower_bound {
-                log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()));
+                log(format!("END after: {:?} (found OPT solution)", start_time.elapsed()),true,args.measurement);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false,args.measurement);
                 exit(0)
             }
         }

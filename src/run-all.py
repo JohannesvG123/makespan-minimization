@@ -22,14 +22,16 @@ else:
     mm = 'target/debug/makespan-minimization '
 
 start_time = time.time()
+s = int(start_time)
 
 for file in os.listdir("./benchmarks"):
     if os.path.isfile('./benchmarks/' + file) and ".txt" in file:
         print("starting with input: '" + file + "'")
 
-        os.system(mm + '--path ' + './benchmarks/' + file + ' ' + args + ' --write --write-separate-files')
+        os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs{s}.txt") #--write --write-separate-files
 
         print("end with input: '" + file + "' -----------------------\n")
 
 end_time = time.time()
 print(f"time: {end_time - start_time} sec")
+print(f"generated logs are written in logs{s}.txt")

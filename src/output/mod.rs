@@ -15,7 +15,7 @@ pub mod machine_jobs;
 pub mod schedule;
 pub mod solution;
 
-pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool) {
+pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool,measurement:bool) {
     if write {
         let output_string = solution.to_output_string(perm);
 
@@ -56,7 +56,7 @@ pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool,
             }
         }
     } else {
-        log(solution.to_string());
+        log(solution.to_string()+"\n",true,measurement);
     }
 }
 
@@ -71,8 +71,8 @@ pub fn get_directory_name(directory_name: Option<String>, input_file_name: &str)
 }
 
 ///used for logging (also prints the current thread index if available)
-pub fn log(message: String) {
-    if true { //TODO 1 cmd arg hinzufügen damit in dem fall nix geprinted wird und nur die beste solution ausgegeben wird?-> Fragen
+pub fn log(message: String, needed_for_measurement: bool, measurement: bool) {
+    if !measurement || needed_for_measurement {
         let thread_opt = current_thread_index();
         let thread = match thread_opt {
             None => { String::new() }

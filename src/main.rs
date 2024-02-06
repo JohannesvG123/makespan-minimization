@@ -60,7 +60,7 @@ fn main() {
     if args.rr { algos.push(RR); }
     if args.swap { algos.push(Swap); }
 
-    let mut sorted_input = get_input(&args.path);
+    let mut sorted_input = get_input(&args.path, args.measurement);
     let input = sorted_input.get_input();
     let perm = sorted_input.get_permutation();
 
@@ -99,8 +99,8 @@ fn main() {
                 }
             }
         });
-        log(format!("END (all algorithms finished) after: {:?} (OPT not necessarily found)", start_time.elapsed()));
-        good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
+        log(format!("END (all algorithms finished) after: {:?} (OPT not necessarily found)", start_time.elapsed()), true, args_for_output.measurement);
+        good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
         exit(0)
     });
 
@@ -108,8 +108,8 @@ fn main() {
         sleep(Duration::from_millis(100)); //hier kann die Genauigkeit angepasst werden
     }
 
-    log(format!("END (timeout) after: {:?} (OPT not necessarily found)", start_time.elapsed()));
-    good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files);
+    log(format!("END (timeout) after: {:?} (OPT not necessarily found)", start_time.elapsed()), true, args_for_output.measurement);
+    good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
 }
 
 fn tmp_get_opt(path_buf: &PathBuf) -> Option<u32> { //tmp
@@ -195,6 +195,10 @@ struct Args {
     /// execution will be stopped after given amount of seconds
     #[arg(long, default_value = "10")]
     timeout_after: u64,
+
+    /// Whether a measurement will be done or not (changes the amount of logs that are written)
+    #[arg(long, action)]
+    measurement: bool,
 
 }
 

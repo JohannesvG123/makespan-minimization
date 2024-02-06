@@ -41,7 +41,7 @@ impl RFScheduler {
 
     /// Assigns the jobs to random machines
     pub fn random_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", RF));
+        log(format!("running {:?} algorithm...", RF),false,args.measurement);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -63,10 +63,10 @@ impl RFScheduler {
                 fails += 1;
                 if fails == fails_until_check {
                     if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check
-                        log(String::from("performed satisfiability check because fails_until_check was reached"));
+                        log(String::from("performed satisfiability check because fails_until_check was reached"),false,args.measurement);
                         fails = 0;
                     } else {
-                        log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF));
+                        log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF),false,args.measurement);
                         return Solution::unsatisfiable(RF);
                     }
                 }

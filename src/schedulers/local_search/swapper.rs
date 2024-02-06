@@ -106,7 +106,7 @@ impl Swapper {
     /// the newly created solutions get stored in good_solutions
     /// the best one gets returned
     fn swap(&self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", Swap));
+        log(format!("running {:?} algorithm...", Swap), false, args.measurement);
 
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
@@ -115,7 +115,7 @@ impl Swapper {
             while good_solutions.get_solution_count() < self.config.number_of_solutions {
                 //TODO 1 should terminate methode hier aufrufen (iwan abbruch -> durch cmd arg spezifizieren)
                 sleep(Duration::from_millis(100));
-                log(String::from("waiting for enough good solutions to run Swap algorithm..."));
+                log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement);
             }
 
             let old_solutions = Arc::new(good_solutions.get_best_solutions(self.config.number_of_solutions)); //TODO (low prio) version einbauen mit eingabe von Solution auf der gearbeitet wird (zb RF laufen lassen und iwan dann swap drauf schmeißen) => bei den List schedulern ein bool hinzufügen ob das gemacht werden soll oder nicht

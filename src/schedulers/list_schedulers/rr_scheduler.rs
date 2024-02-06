@@ -35,7 +35,7 @@ impl RRScheduler {
 
     /// Round Robin job assignment
     pub fn round_robin(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", RR));
+        log(format!("running {:?} algorithm...", RR),false,args.measurement);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -50,7 +50,7 @@ impl RRScheduler {
             while machine_jobs.get_machine_workload((machine + offset).rem_euclid(self.input.get_machine_count())) + self.input.get_jobs()[job_index] > upper_bound {
                 offset += 1;
                 if offset == self.input.get_machine_count() { //satisfiability check
-                    log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RR));
+                    log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RR),false,args.measurement);
                     return Solution::unsatisfiable(RR);
                 }
             }

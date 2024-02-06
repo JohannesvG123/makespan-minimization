@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use chrono::Local;
 use concurrent_map::ConcurrentMap;
 use permutation::Permutation;
 
@@ -75,15 +74,14 @@ impl GoodSolutions {
         self.max_capacity
     }
 
-    pub fn write_output(&self, perm: Arc<Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool) {
-        log(String::from("writing output..."));
+    pub fn write_output(&self, perm: Arc<Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool, measurement: bool) {
+        log(String::from("writing output..."), false, measurement);
 
 
         let directory_name_str = get_directory_name(directory_name, input_file_name);
 
         for (_, solution) in self.solutions.iter() {
-            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files);
+            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files,measurement);
         }
     }
-
 }
