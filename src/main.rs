@@ -99,7 +99,7 @@ fn main() {
                 }
             }
         });
-        log(format!("END (all algorithms finished) after: {:?} (OPT not necessarily found)", start_time.elapsed()), true, args_for_output.measurement);
+        log(format!("END (all algorithms finished) after: {} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement);
         good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
         exit(0)
     });
@@ -108,7 +108,7 @@ fn main() {
         sleep(Duration::from_millis(100)); //hier kann die Genauigkeit angepasst werden
     }
 
-    log(format!("END (timeout) after: {:?} (OPT not necessarily found)", start_time.elapsed()), true, args_for_output.measurement);
+    log(format!("END (timeout) after: {} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement);
     good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
 }
 
