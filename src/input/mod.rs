@@ -13,7 +13,7 @@ pub fn get_input(path_buf: &PathBuf,measurement:bool) -> SortedInput {
 }
 
 fn read_input(path_buf: &PathBuf,measurement:bool) -> String {
-    log(String::from("\nreading input..."),false,measurement);
+    log(String::from("reading input..."),false,measurement);
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,

@@ -76,7 +76,7 @@ impl RFScheduler {
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
 
-        Solution::new(RF, Some(format!("{:?}", self.config)), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time) //TODO vllt display implementieren für die config
+        Solution::new(RF, Some(format!("{:?}", self.config)), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
     }
 }
 

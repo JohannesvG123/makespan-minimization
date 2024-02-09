@@ -172,7 +172,8 @@ impl Swapper {
                     while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                         solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
                         self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo .clone ><
-                    }
+                    } //TODO prio1 kompletter restart mit rf und dann weiterswap (immer im intervall: entweder nach n schritten oder probabilistisch und das (faktor jweils) skalieren mit der zeit)
+
 
                     solution.add_algorithm(Swap);
                     solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
@@ -196,30 +197,21 @@ impl Swapper {
         let mut swap_indices: (usize, usize, usize, usize) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
         let mut swap_found = false;
 
-        for m1 in 0..self.input.get_machine_count() {
-            for m2 in m1..self.input.get_machine_count() {
-                //for all machine pairs {m1,m2}
-                if (current_heaviest_machines.len() == 1 && (current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2))) || (current_heaviest_machines.len() == 2 && current_heaviest_machines.contains(&m1) && current_heaviest_machines.contains(&m2)) {
-                    //vorherige (leichtere Bdg.): current_heaviest_machines.contains(&m1) || current_heaviest_machines.contains(&m2)
-                    //only in this case we can improve our c_max
-                    let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
-                    let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
-                    for j1 in 0..machine_1_jobs.len() {
-                        for j2 in 0..machine_2_jobs.len() {
-                            //for all job pairs (j1,j2) on (m1,m2)
-                            let new_c_max = self.simulate_two_job_swap(
-                                m1,
-                                machine_1_jobs[j1],
-                                m2,
-                                machine_2_jobs[j2],
-                                machine_jobs,
-                                current_heaviest_machines.as_slice(),
-                            );
-                            if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
-                                swap_found = true;
-                                current_c_max = new_c_max;
-                                swap_indices = (m1, j1, m2, j2);
-                            }
+        if current_heaviest_machines.len() == 1 { // otherwise a two job swap does not cause improvements
+            let m1 = current_heaviest_machines[0];
+            for m2 in 0..self.input.get_machine_count() {
+                if m2 == m1 { continue; }
+
+                let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
+                let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
+                for j1 in 0..machine_1_jobs.len() {
+                    for j2 in 0..machine_2_jobs.len() {
+                        //for all job pairs (j1,j2) on (m1,m2)
+                        let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
+                        if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
+                            swap_found = true;
+                            current_c_max = new_c_max;
+                            swap_indices = (m1, j1, m2, j2);
                         }
                     }
                 }
@@ -227,6 +219,7 @@ impl Swapper {
         }
 
         if swap_found {
+            println!("{}", current_c_max);
             Some(swap_indices)
         } else {
             None
