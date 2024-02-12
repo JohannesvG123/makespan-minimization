@@ -23,6 +23,7 @@ use crate::input::seed_from_str;
 use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
+use crate::schedulers::list_schedulers::rf_scheduler::{RFConfig, RFScheduler};
 use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, SimulatedAnnealing};
 use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
@@ -123,7 +124,7 @@ impl Swapper {
 
             for i in 0..self.config.number_of_solutions {
                 let old_solutions = Arc::clone(&old_solutions);
-                let mut best_solution = Arc::clone(&best_solution_for_threads);
+                let mut best_solution = Arc::clone(&best_solution_for_threads); //todo ist nur für output daher unnötig und kann weggelassen werden
                 let perm = Arc::clone(&perm);
                 let args = Arc::clone(&args);
                 let good_solutions = good_solutions.clone();
@@ -166,22 +167,47 @@ impl Swapper {
                         rng,
                         number_of_solutions: self.config.number_of_solutions,
                     };
-
+                    //TODO (immer im intervall: entweder nach n schritten oder probabilistisch und das (faktor jweils) skalieren mit der zeit)
                     let mut solution = old_solutions[i].clone();
+                    solution.add_algorithm(Swap);
+                    solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
+
+                    //todo als args mit aufnehmen
+                    let do_restart_after_steps = false;
+                    let mut restart_after_steps = 50;
+                    let mut steps = 0;
+                    let do_restart_possibility = true;
+                    let mut restart_possibility = 0.05;
+                    let restart_scaling_factor = 1;
 
                     while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                         solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
-                        self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo .clone ><
-                    } //TODO prio1 kompletter restart mit rf und dann weiterswap (immer im intervall: entweder nach n schritten oder probabilistisch und das (faktor jweils) skalieren mit der zeit)
+                        //add newly found solution to shared structs
+                        self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo ihhh .clone ><
+                        good_solutions.add_solution(solution.clone());
+                        steps += 1;
+                        //println!("{}", steps);
+                        let mut restart = false;
+                        if do_restart_after_steps {
+                            if steps == restart_after_steps {
+                                restart = true;
+                                steps = 0;
+                            }
+                        } else if do_restart_possibility {
+                            restart = thread_rng().gen_bool(restart_possibility); //TODO richtigen rng nutzen!
+                        }
+                        if restart {
+                            //println!("DO RESTART");
+                            solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new()).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                            solution.add_algorithm(Swap);
+                            solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
+                        }
+                    }
 
-
-                    solution.add_algorithm(Swap);
-                    solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
                     if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method
                         let mut bs = best_solution.lock().unwrap();
                         *bs = solution.clone();
                     }
-                    good_solutions.add_solution(solution);
                 });
             }
         });
