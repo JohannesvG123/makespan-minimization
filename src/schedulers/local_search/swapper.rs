@@ -219,7 +219,6 @@ impl Swapper {
         }
 
         if swap_found {
-            println!("{}", current_c_max);
             Some(swap_indices)
         } else {
             None
@@ -340,7 +339,7 @@ pub struct SwapConfig {
     swap_finding_tactic: SwapTactic,
     swap_acceptance_rule: SwapAcceptanceRule,
     number_of_solutions: usize,
-    rng_seed: Option<[u8; 32]>,
+    rng_seed: Option<<ChaCha8Rng as SeedableRng>::Seed>,
 }
 
 #[derive(Clone, Debug)]
