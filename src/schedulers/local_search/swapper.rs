@@ -1,6 +1,5 @@
 use std::cmp::max;
 use std::fmt::Debug;
-use std::ops::Range;
 use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::{Arc, Mutex};
@@ -10,8 +9,7 @@ use std::time::{Duration, Instant};
 use atoi::atoi;
 use clap::ValueEnum;
 use permutation::Permutation;
-use rand::{Rng, SeedableRng, thread_rng};
-use rand_chacha::ChaCha8Rng;
+use rand::Rng;
 use regex::Regex;
 
 use crate::{Algorithm, Args};
@@ -19,7 +17,7 @@ use crate::Algorithm::Swap;
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
 use crate::input::input::Input;
-use crate::input::seed_from_str;
+use crate::input::MyRng;
 use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
@@ -32,6 +30,7 @@ pub struct Swapper {
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
     config: SwapConfig,
+    shared_initial_rng: Arc<Mutex<MyRng>>,
 }
 
 impl Scheduler for Swapper {
@@ -68,11 +67,12 @@ pub enum SwapAcceptanceRule {
 }
 
 impl Swapper {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: SwapConfig) -> Self {
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: SwapConfig, shared_initial_rng: Arc<Mutex<MyRng>>) -> Self {
         Self {
             input,
             global_bounds,
             config,
+            shared_initial_rng,
         }
     }
 
@@ -91,7 +91,7 @@ impl Swapper {
         if new_c_max > old_c_max {
             true
         } else {
-            concrete_swap_config.rng_gen_bool(percentage)
+            concrete_swap_config.rng.get_mut().gen_bool(percentage)
         }
     }
 
@@ -154,10 +154,7 @@ impl Swapper {
                         DeclineByChance(percentage) => { Some(percentage) }
                         _ => { None }
                     };
-                    let rng = match self.config.rng_seed {
-                        None => { None }
-                        Some(seed) => { Some(ChaCha8Rng::from_seed(seed)) }
-                    };
+                    let rng = self.shared_initial_rng.lock().unwrap().generate_new_seed().create_rng();
 
                     let mut concrete_swap_config = ConcreteSwapConfig {
                         swap_finding_tactic: swap_finding_tactic_fn,
@@ -167,7 +164,7 @@ impl Swapper {
                         rng,
                         number_of_solutions: self.config.number_of_solutions,
                     };
-                    //TODO (immer im intervall: entweder nach n schritten oder probabilistisch und das (faktor jweils) skalieren mit der zeit)
+
                     let mut solution = old_solutions[i].clone();
                     solution.add_algorithm(Swap);
                     solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
@@ -197,13 +194,13 @@ impl Swapper {
                                     steps = 0;
                                 }
                             } else if do_restart_possibility {
-                                restart = thread_rng().gen_bool(restart_possibility); //TODO richtigen rng nutzen!
+                                restart = concrete_swap_config.rng.get_mut().gen_bool(restart_possibility);
                             }
 
                             if restart { break; }
                         }
                         //println!("DO RESTART");
-                        solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new()).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                        solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new(), Arc::clone(&self.shared_initial_rng)).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
                         solution.add_algorithm(Swap);
                         solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
                     }
@@ -266,22 +263,22 @@ impl Swapper {
 
         loop {
             //generate random values
-            let mut m1 = concrete_swap_config.rng_gen_range((0..machine_count));
+            let mut m1 = concrete_swap_config.rng.get_mut().gen_range((0..machine_count));
             let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             while machine_1_jobs.len() == 0 {
                 // in case the machine is not used for the schedule
-                m1 = concrete_swap_config.rng_gen_range(0..machine_count);
+                m1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
                 machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             }
-            let mut m2 = concrete_swap_config.rng_gen_range(0..machine_count);
+            let mut m2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
             let mut machine_2_jobs = machine_jobs.get_machine_jobs(m2);
             while m2 == m1 || machine_2_jobs.len() == 0 {
                 //cant swap from the same machine
-                m2 = concrete_swap_config.rng_gen_range(0..machine_count);
+                m2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
                 machine_2_jobs = machine_jobs.get_machine_jobs(m2);
             }
-            let j1 = concrete_swap_config.rng_gen_range(0..machine_1_jobs.len());
-            let j2 = concrete_swap_config.rng_gen_range(0..machine_2_jobs.len());
+            let j1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_1_jobs.len());
+            let j2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_2_jobs.len());
 
             //check swap
             let new_c_max = self.simulate_two_job_swap(
@@ -369,7 +366,6 @@ pub struct SwapConfig {
     swap_finding_tactic: SwapTactic,
     swap_acceptance_rule: SwapAcceptanceRule,
     number_of_solutions: usize,
-    rng_seed: Option<<ChaCha8Rng as SeedableRng>::Seed>,
 }
 
 #[derive(Clone, Debug)]
@@ -378,32 +374,8 @@ pub struct ConcreteSwapConfig {
     swap_acceptance_rule: fn(u32, u32, &mut ConcreteSwapConfig) -> bool,
     decline_by_chance_percentage: Option<u8>,
     random_swap_fails_until_stop: Option<(usize)>,
-    rng: Option<ChaCha8Rng>,
+    rng: MyRng,
     number_of_solutions: usize,
-}
-
-impl ConcreteSwapConfig {
-    pub fn rng_gen_range(&mut self, range: Range<usize>) -> usize {
-        match &mut self.rng {
-            None => {
-                todo!("errorrr not reachable1")
-            }
-            Some(r) => {
-                r.gen_range(range)
-            }
-        }
-    }
-
-    pub fn rng_gen_bool(&mut self, p: f64) -> bool {
-        match &mut self.rng {
-            None => {
-                todo!("errorrr not reachable2")
-            }
-            Some(r) => {
-                r.gen_bool(p)
-            }
-        }
-    }
 }
 
 impl FromStr for SwapConfig {
@@ -434,20 +406,6 @@ impl FromStr for SwapConfig {
                 } else {
                     //default:
                     1
-                }
-            },
-            rng_seed: { //TODO ACHTUNG  ,decline-by-32%-chance, wirft fehler und  ,decline-by-32%-chance,, nicht (so lassen oder ändern?)
-                if parts.len() > 3 { //nur bei ,,, wird seed generiert (bei ,,nicht!)
-                    if parts[3].len() > 0 {
-                        Some(seed_from_str(parts[3]))
-                    } else {
-                        //default: random seed
-                        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
-                        thread_rng().fill(&mut seed);
-                        Some(seed)
-                    }
-                } else {
-                    None
                 }
             },
         })

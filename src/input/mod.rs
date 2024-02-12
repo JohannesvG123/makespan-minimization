@@ -1,5 +1,12 @@
+use std::error::Error;
+use std::fmt::Display;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
+use std::string::ParseError;
+
+use rand::{Rng, SeedableRng, thread_rng};
+use rand_chacha::ChaCha8Rng;
 
 use crate::input::sorted_input::SortedInput;
 use crate::output::log;
@@ -7,13 +14,13 @@ use crate::output::log;
 pub mod input;
 pub mod sorted_input;
 
-pub fn get_input(path_buf: &PathBuf,measurement:bool) -> SortedInput {
-    let input_str = read_input(path_buf,measurement);
-    parse_input(&input_str,measurement)
+pub fn get_input(path_buf: &PathBuf, measurement: bool) -> SortedInput {
+    let input_str = read_input(path_buf, measurement);
+    parse_input(&input_str, measurement)
 }
 
-fn read_input(path_buf: &PathBuf,measurement:bool) -> String {
-    log(String::from("reading input..."),false,measurement);
+fn read_input(path_buf: &PathBuf, measurement: bool) -> String {
+    log(String::from("reading input..."), false, measurement);
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,
@@ -21,8 +28,8 @@ fn read_input(path_buf: &PathBuf,measurement:bool) -> String {
     }
 }
 
-fn parse_input(input_str: &str,measurement:bool) -> SortedInput {
-    log(String::from("parsing input..."),false,measurement);
+fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
+    log(String::from("parsing input..."), false, measurement);
 
     let mut split = match input_str.contains(";") {
         true => {
@@ -50,13 +57,65 @@ fn parse_input(input_str: &str,measurement:bool) -> SortedInput {
     }
 }
 
-pub fn seed_from_str(part: &str) -> [u8; 32] {
-    let seed_part = part.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
-    let seed_parts: Vec<&str> = seed_part.split("|").collect();
+#[derive(Debug, Clone)]
+pub struct MyRng(ChaCha8Rng);
 
-    let mut seed: [u8; 32] = [0; 32];
-    for i in 0..seed_parts.len() {
-        seed[i] = seed_parts[i].parse::<u8>().unwrap();
+impl MyRng {
+    pub fn get_seed(&self) -> <ChaCha8Rng as SeedableRng>::Seed {
+        self.0.get_seed()
     }
-    seed
+
+    pub fn generate_new_seed(&mut self) -> RngSeed {
+        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
+        self.0.fill(&mut seed);
+        RngSeed(seed)
+    }
+
+    pub fn get_mut(&mut self) -> &mut ChaCha8Rng {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RngSeed(<ChaCha8Rng as SeedableRng>::Seed);
+
+impl RngSeed {
+    pub fn create_rng(&self) -> MyRng {
+        MyRng(ChaCha8Rng::from_seed(self.0))
+    }
+}
+
+impl FromStr for RngSeed {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let seed_part = s.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
+
+        let seed_parts: Vec<&str> = seed_part.split("|").collect();
+
+        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
+        for i in 0..seed_parts.len() {
+            seed[i] = seed_parts[i].parse::<u8>().unwrap();
+        }
+        Ok(Self(seed))
+    }
+}
+
+impl Default for RngSeed {
+    fn default() -> Self {
+        let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
+        thread_rng().fill(&mut seed);
+        Self(seed)
+    }
+}
+
+impl Display for RngSeed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+        for val in self.0 {
+            out = format!("{}{}|", out, val);
+        }
+        out = out.strip_suffix("|").unwrap().to_string();
+        write!(f, "[{}]", out)
+    }
 }

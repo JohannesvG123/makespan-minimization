@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 use std::string::String;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -19,7 +19,7 @@ use rayon::prelude::*;
 use crate::Algorithm::{BF, FF, LPT, RF, RR, Swap};
 use crate::global_bounds::bounds::Bounds;
 use crate::good_solutions::good_solutions::GoodSolutions;
-use crate::input::get_input;
+use crate::input::{get_input, MyRng, RngSeed};
 use crate::input::input::Input;
 use crate::output::log;
 use crate::schedulers::list_schedulers::bf_scheduler::BFScheduler;
@@ -40,13 +40,13 @@ mod schedulers;
 
 fn main() {
     //new algorithms can be added here:
-    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Args>, usize) -> Box<dyn Scheduler + Send>, > = enum_map! {
-        LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(RFScheduler::new(input,global_bounds,args.rf_configs[config_id].clone()))as Box<dyn Scheduler + Send>, //TODO prio clone wegbekommen mit slice oder soo
-        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone()))as Box<dyn Scheduler + Send>,
+    let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Args>, usize, Arc<Mutex<MyRng>>) -> Box<dyn Scheduler + Send>, > = enum_map! {
+        LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RFScheduler::new(input,global_bounds,args.rf_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>, //TODO prio clone wegbekommen mit slice oder soo
+        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,
     };
 
     //start:
@@ -60,6 +60,8 @@ fn main() {
     if args.rf { algos.push(RF); }
     if args.rr { algos.push(RR); }
     if args.swap { algos.push(Swap); }
+
+    let shared_initial_rng = Arc::new(Mutex::new(args.rng_seed.create_rng()));
 
     let mut sorted_input = get_input(&args.path, args.measurement);
     let input = sorted_input.get_input();
@@ -89,11 +91,10 @@ fn main() {
 
                 for current_config_id in 0..config_count {
                     //clone references to use them in spawned threads:
-
-                    let (algorithm, good_solutions, input, args, global_bounds, perm) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm));
+                    let (algorithm, good_solutions, input, args, global_bounds, perm, shared_initial_rng) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm), Arc::clone(&shared_initial_rng));
 
                     s.spawn(move |_| {
-                        let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id);
+                        let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id, shared_initial_rng);
                         let solution = scheduler.schedule(good_solutions.clone(), args, perm, start_time);
                         good_solutions.add_solution(solution);
                     });
@@ -155,7 +156,7 @@ struct Args {
 
     /// configurations for running the RF algo
     ///
-    /// (structure: "[rng_seed1],[fails_until_check1] ...", rng_seed-default=random seed, fails_until_check-default = machine_count)
+    /// (RF_CONFIG= "x-fails-until-check" or "," => fails_until_check = x or default)
     #[arg(long, value_name = "RF_CONFIG", num_args = 1.., requires = "rf", required_if_eq("rf", "true"))]
     rf_configs: Vec<RFConfig>,
 
@@ -169,7 +170,7 @@ struct Args {
 
     /// configurations for running the Swap algo
     ///
-    /// (structure: "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1][,[rng_seed1]] ...", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, rng_seed-default=random seed or none depending on number of ;'s)
+    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1]", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
     swap_configs: Vec<SwapConfig>,
 
@@ -196,6 +197,12 @@ struct Args {
     /// execution will be stopped after given amount of seconds
     #[arg(long, default_value = "10")]
     timeout_after: u64,
+
+    /// Rng seed used for all rng's in algorithms using randomness (no seed specified => randomly generated default seed will be used)
+    ///
+    /// (structure: [val_1|val_2|val_3|...|val_32] )
+    #[arg(long, default_value_t = RngSeed::default())]
+    rng_seed: RngSeed,
 
     /// Whether a measurement will be done or not (changes the amount of logs that are written)
     #[arg(long, action)]
