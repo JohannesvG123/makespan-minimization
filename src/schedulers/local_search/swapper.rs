@@ -175,36 +175,40 @@ impl Swapper {
                     //todo als args mit aufnehmen
                     let do_restart_after_steps = false;
                     let mut restart_after_steps = 50;
-                    let mut steps = 0;
                     let do_restart_possibility = true;
                     let mut restart_possibility = 0.05;
                     let restart_scaling_factor = 1;
 
-                    while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
-                        solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
-                        //add newly found solution to shared structs
-                        self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo ihhh .clone ><
-                        good_solutions.add_solution(solution.clone());
-                        steps += 1;
-                        //println!("{}", steps);
+                    loop {
                         let mut restart = false;
-                        if do_restart_after_steps {
-                            if steps == restart_after_steps {
-                                restart = true;
-                                steps = 0;
+                        let mut steps = 0;
+
+                        while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
+                            solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time);
+                            //add newly found solution to shared structs
+                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time); //todo ihhh .clone ><
+                            good_solutions.add_solution(solution.clone());
+                            steps += 1;
+                            //println!("{}", steps);
+
+                            if do_restart_after_steps {
+                                if steps == restart_after_steps {
+                                    restart = true;
+                                    steps = 0;
+                                }
+                            } else if do_restart_possibility {
+                                restart = thread_rng().gen_bool(restart_possibility); //TODO richtigen rng nutzen!
                             }
-                        } else if do_restart_possibility {
-                            restart = thread_rng().gen_bool(restart_possibility); //TODO richtigen rng nutzen!
+
+                            if restart { break; }
                         }
-                        if restart {
-                            //println!("DO RESTART");
-                            solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new()).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
-                            solution.add_algorithm(Swap);
-                            solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
-                        }
+                        //println!("DO RESTART");
+                        solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new()).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                        solution.add_algorithm(Swap);
+                        solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
                     }
 
-                    if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method
+                    if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method todo kann eig gelöscht werden weil nichtmehr benötigt...
                         let mut bs = best_solution.lock().unwrap();
                         *bs = solution.clone();
                     }
