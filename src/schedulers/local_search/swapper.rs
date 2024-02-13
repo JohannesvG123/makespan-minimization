@@ -167,7 +167,7 @@ impl Swapper {
 
                     let mut solution = old_solutions[i].clone();
                     solution.add_algorithm(Swap);
-                    solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
+                    solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng)); //TODO (low prio) vllt display implementieren für die config
 
                     //todo als args mit aufnehmen
                     let do_restart_after_steps = false;
@@ -202,7 +202,7 @@ impl Swapper {
                         //println!("DO RESTART");
                         solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new(), Arc::clone(&self.shared_initial_rng)).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
                         solution.add_algorithm(Swap);
-                        solution.add_config(format!("{:?}", self.config)); //TODO (low prio) vllt display implementieren für die config
+                        solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng)); //TODO (low prio) vllt display implementieren für die config
                     }
 
                     if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method todo kann eig gelöscht werden weil nichtmehr benötigt...

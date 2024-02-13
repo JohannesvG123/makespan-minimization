@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::{Arc, Mutex};
@@ -69,7 +70,7 @@ impl RFScheduler {
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)
         }
 
-        Solution::new(RF, Some(format!("{:?}", self.config)), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
+        Solution::new(RF, Some(self.config.to_string()), machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
     }
 }
 
@@ -93,6 +94,12 @@ impl ConcreteRFConfig {
                 }
             },
         }
+    }
+}
+
+impl Display for ConcreteRFConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RF_CONFIG: RNG:{} ;FAILS_UNTIL_CHECK:{}", self.rng, self.fails_until_check)
     }
 }
 

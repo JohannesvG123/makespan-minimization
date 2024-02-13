@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -60,9 +60,15 @@ fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
 #[derive(Debug, Clone)]
 pub struct MyRng(ChaCha8Rng);
 
+impl Display for MyRng {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.get_seed())
+    }
+}
+
 impl MyRng {
-    pub fn get_seed(&self) -> <ChaCha8Rng as SeedableRng>::Seed {
-        self.0.get_seed()
+    pub fn get_seed(&self) -> RngSeed {
+        RngSeed(self.0.get_seed())
     }
 
     pub fn generate_new_seed(&mut self) -> RngSeed {

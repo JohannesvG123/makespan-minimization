@@ -116,9 +116,9 @@ impl fmt::Display for Solution {
                 algorithms_str.push_str(format!("{}_", algorithm).as_str());
             }
             algorithms_str.pop();
-            write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0", self.get_data().get_c_max(), self.get_data().get_schedule(), algorithms_str)
+            write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0\nconfig:{3:?}", self.get_data().get_c_max(), self.get_data().get_schedule(), algorithms_str, self.used_config)
         } else {
-            write!(f, "{}\nSCHEDULING_SOLUTION UNSATISFIABLE!", self.used_algorithms[0])
+            write!(f, "{}\nSCHEDULING_SOLUTION UNSATISFIABLE!\nconfig:{:?}", self.used_algorithms[0], self.used_config)
         }
     }
 }
