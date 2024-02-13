@@ -114,7 +114,7 @@ impl Swapper {
         rayon::scope(move |s| {
             //get solutions:
             while good_solutions.get_solution_count() < self.config.number_of_solutions {
-                //TODO 1 should terminate methode hier aufrufen (iwan abbruch -> durch cmd arg spezifizieren)
+                //TODO 1 should terminate methode hier aufrufen oder yielding bzw active waiting (iwan abbruch -> durch cmd arg spezifizieren)
                 sleep(Duration::from_millis(100));
                 log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement);
             }
@@ -200,7 +200,10 @@ impl Swapper {
                             if restart { break; }
                         }
                         //println!("DO RESTART");
-                        solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new(), Arc::clone(&self.shared_initial_rng)).schedule(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                        solution = Solution::unsatisfiable(Swap);
+                        while !solution.is_satisfiable() { //TODO PRIO erst x mal mit mit dann ohne bounds!!
+                            solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), RFConfig::new(), Arc::clone(&self.shared_initial_rng)).schedule_without_bounds(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                        }
                         solution.add_algorithm(Swap);
                         solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng)); //TODO (low prio) vllt display implementieren für die config
                     }

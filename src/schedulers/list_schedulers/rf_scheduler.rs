@@ -26,7 +26,7 @@ pub struct RFScheduler {
 
 impl Scheduler for RFScheduler {
     fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        self.random_fit(args, perm, start_time)
+        self.random_fit(args, perm, start_time, true)
     }
 
     fn get_algorithm(&self) -> Algorithm {
@@ -39,8 +39,12 @@ impl RFScheduler {
         Self { input: Arc::clone(&input), global_bounds, config: ConcreteRFConfig::new(config, input, shared_initial_rng) }
     }
 
+    pub fn schedule_without_bounds(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+        self.random_fit(args, perm, start_time, false)
+    }
+
     /// Assigns the jobs to random machines
-    pub fn random_fit(&mut self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+    pub fn random_fit(&mut self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, use_bounds: bool) -> Solution { //TODO use bounds effizienter impl!
         log(format!("running {:?} algorithm...", RF), false, args.measurement);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
@@ -53,18 +57,20 @@ impl RFScheduler {
             let mut random_index = self.config.rng.get_mut().gen_range(0..self.input.get_machine_count());
 
             let mut fails: usize = 0;
-            while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
-                fails += 1;
-                if fails == self.config.fails_until_check {
-                    if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check
-                        log(String::from("performed satisfiability check because fails_until_check was reached"), false, args.measurement);
-                        fails = 0;
-                    } else {
-                        log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF), false, args.measurement); //todo aussagekräftiger machen
-                        return Solution::unsatisfiable(RF);
+            if use_bounds {
+                while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
+                    fails += 1;
+                    if fails == self.config.fails_until_check {
+                        if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check
+                            log(String::from("performed satisfiability check because fails_until_check was reached"), false, args.measurement);
+                            fails = 0;
+                        } else {
+                            log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF), false, args.measurement); //todo aussagekräftiger machen
+                            return Solution::unsatisfiable(RF);
+                        }
                     }
+                    random_index = self.config.rng.get_mut().gen_range(0..self.input.get_machine_count());
                 }
-                random_index = self.config.rng.get_mut().gen_range(0..self.input.get_machine_count());
             }
 
             machine_jobs.assign_job(jobs[job_index], random_index, job_index)

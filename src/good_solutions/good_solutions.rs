@@ -28,6 +28,7 @@ impl GoodSolutions {
             //check if new_solution is actually new:
             if self.solutions.contains_key(&(new_c_max, 0)) {
                 //there is already at least one solution with the same c_max
+                //TODO PRIO hier manchmal bug, dass zwischen den zeilken die struktur verändert wird und daher solutions_to_check leer ist
                 let mut solutions_to_check: Vec<_> = self.solutions.range((new_c_max, 0)..(new_c_max + 1, 0)).collect();
                 for (_, solution) in &solutions_to_check {
                     if new_solution == *solution {
@@ -81,7 +82,7 @@ impl GoodSolutions {
         let directory_name_str = get_directory_name(directory_name, input_file_name);
 
         for (_, solution) in self.solutions.iter() {
-            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files,measurement);
+            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
         }
     }
 }
