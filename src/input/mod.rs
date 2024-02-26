@@ -20,7 +20,7 @@ pub fn get_input(path_buf: &PathBuf, measurement: bool) -> SortedInput {
 }
 
 fn read_input(path_buf: &PathBuf, measurement: bool) -> String {
-    log(String::from("reading input..."), false, measurement);
+    log(String::from("reading input..."), false, measurement,None);
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,
@@ -29,7 +29,7 @@ fn read_input(path_buf: &PathBuf, measurement: bool) -> String {
 }
 
 fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
-    log(String::from("parsing input..."), false, measurement);
+    log(String::from("parsing input..."), false, measurement,None);
 
     let mut split = match input_str.contains(";") {
         true => {

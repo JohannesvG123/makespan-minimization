@@ -45,13 +45,13 @@ fn main() {
         BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RFScheduler::new(input,global_bounds,args.rf_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>, //TODO prio clone wegbekommen mit slice oder soo
-        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,
+        RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RFScheduler::new(input,global_bounds,&(args.rf_configs[config_id]),shared_initial_rng,None))as Box<dyn Scheduler + Send>,
+        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,//TODO prio clone wegbekommen mit slice/eher arc oder soo oder soo
     };
 
     //start:
     let args = Arc::new(Args::parse());
-    log(format!("\nstart with input {:?}...", args.path), true, true);
+    log(format!("\nstart with input {:?}...", args.path), true, true, None);
 
     let mut algos = vec![]; //das muss man gerade so machen, da das cmd-arg Vec<Algos> keine subcommands zulässt...
     if args.bf { algos.push(BF); }
@@ -101,7 +101,7 @@ fn main() {
                 }
             }
         });
-        log(format!("END (all algorithms finished) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement);
+        log(format!("END (all algorithms finished) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement, None);
         good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
         exit(0)
     });
@@ -110,7 +110,7 @@ fn main() {
         sleep(Duration::from_millis(100)); //hier kann die Genauigkeit angepasst werden
     }
 
-    log(format!("END (timeout) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement);
+    log(format!("END (timeout) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement, None);
     good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
 }
 
@@ -170,9 +170,9 @@ struct Args {
 
     /// configurations for running the Swap algo
     ///
-    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1]", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
+    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1],[do_restart_after_steps1],[restart_after_steps1],[restart_possibility1],[random_restart_possibility1],[lambda1]", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
-    swap_configs: Vec<SwapConfig>,
+    swap_configs: Vec<SwapConfig>,//TODO hier Arc verwenden evtl + Hier alle möglichen werte auflisten also alle tactics und nb of solutions= x oder all UND alle defaults usw... (ABER einfach alles in .json auslagern)
 
     /// Whether the output should be written in a directory or not
     #[arg(long, action)]

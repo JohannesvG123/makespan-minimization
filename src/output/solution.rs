@@ -24,7 +24,7 @@ impl Solution {
     pub fn new(used_algorithm: Algorithm, used_config: Option<String>, machine_jobs: MachineJobs, jobs: &[u32], global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Self {
         //TODO schedule nur on demand ausrechnen
         let solution = Self { satisfiable: true, used_algorithms: vec![used_algorithm], used_config, data: Some(Data::new(machine_jobs.get_c_max(), machine_jobs.calculate_schedule(jobs), machine_jobs)) };
-        global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args, perm, start_time);
+        global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args, perm, start_time,Some(used_algorithm));
         solution
     }
 
@@ -95,9 +95,9 @@ impl Solution {
         }
     }
 
-    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) {
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant,currently_running_algo:Option<Algorithm>) {
         self.get_mut_data().swap_jobs(swap_indices, jobs, machine_count);
-        global_bounds.update_upper_bound(self.get_data().get_c_max(), self, args, perm, start_time)
+        global_bounds.update_upper_bound(self.get_data().get_c_max(), self, args, perm, start_time,currently_running_algo)
     }
 }
 

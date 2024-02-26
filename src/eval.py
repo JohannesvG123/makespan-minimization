@@ -12,16 +12,19 @@ def run():
             lines = log.readlines()
 
             instances = 0
+            instance_names = []
             runtime: float = 0
             opt_found = 0
             all_algos_finished = 0
             timeout = 0
             upper_bounds: list[([float], [int])] = []  # upper_bounds[instance_index]=(list of time,list of new bound)
             lower_bounds: list[([float], [int])] = []
+            config = ""
 
             for line in lines:
                 if "start with input" in line:
                     instances += 1
+                    instance_names.append(line.split("\"")[1])
                 if "END" in line:
                     # extract time:
                     x = re.findall(" \d+\.\d+", line)
@@ -49,9 +52,12 @@ def run():
                     lb = int((line.split('->')[1]).split(' ')[0])
                     (lower_bounds[instances - 1][0]).append(time)
                     (lower_bounds[instances - 1][1]).append(lb)
+                if "FRAMEWORK_CONFIG:" in line:
+                    config = line.split('FRAMEWORK_CONFIG:')[1].strip()
 
             measurements.append(
-                (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds))
+                (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds, config,
+                 instance_names))
     return measurements
 
 

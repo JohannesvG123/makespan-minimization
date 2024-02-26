@@ -22,6 +22,7 @@ pub struct RFScheduler {
     input: Arc<Input>,
     global_bounds: Arc<Bounds>,
     config: ConcreteRFConfig,
+    higher_level_algo: Option<Algorithm>,
 }
 
 impl Scheduler for RFScheduler {
@@ -35,8 +36,8 @@ impl Scheduler for RFScheduler {
 }
 
 impl RFScheduler {
-    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: RFConfig, shared_initial_rng: Arc<Mutex<MyRng>>) -> Self {
-        Self { input: Arc::clone(&input), global_bounds, config: ConcreteRFConfig::new(config, input, shared_initial_rng) }
+    pub fn new(input: Arc<Input>, global_bounds: Arc<Bounds>, config: &RFConfig, shared_initial_rng: Arc<Mutex<MyRng>>, higher_level_algo: Option<Algorithm>) -> Self {
+        Self { input: Arc::clone(&input), global_bounds, config: ConcreteRFConfig::new(config, input, shared_initial_rng), higher_level_algo }
     }
 
     pub fn schedule_without_bounds(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
@@ -45,7 +46,7 @@ impl RFScheduler {
 
     /// Assigns the jobs to random machines
     pub fn random_fit(&mut self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, use_bounds: bool) -> Solution { //TODO use bounds effizienter impl!
-        log(format!("running {:?} algorithm...", RF), false, args.measurement);
+        log(format!("running {:?} algorithm...", RF), false, args.measurement, self.higher_level_algo);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -61,11 +62,11 @@ impl RFScheduler {
                 while machine_jobs.get_machine_workload(random_index) + jobs[job_index] > upper_bound {
                     fails += 1;
                     if fails == self.config.fails_until_check {
-                        if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check
-                            log(String::from("performed satisfiability check because fails_until_check was reached"), false, args.measurement);
+                        if (0..machine_count).collect::<Vec<_>>().iter().any(|&machine_index| machine_jobs.get_machine_workload(machine_index) + jobs[job_index] <= upper_bound) { //satisfiability check //TODO prio den weglassen der is lost
+                            log(String::from("performed satisfiability check because fails_until_check was reached"), false, args.measurement, Some(RF));
                             fails = 0;
                         } else {
-                            log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF), false, args.measurement); //todo aussagekräftiger machen
+                            log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, RF), false, args.measurement, Some(RF)); //todo aussagekräftiger machen
                             return Solution::unsatisfiable(RF);
                         }
                     }
@@ -87,7 +88,7 @@ pub struct ConcreteRFConfig {
 }
 
 impl ConcreteRFConfig {
-    pub fn new(config: RFConfig, input: Arc<Input>, shared_initial_rng: Arc<Mutex<MyRng>>) -> Self {
+    pub fn new(config: &RFConfig, input: Arc<Input>, shared_initial_rng: Arc<Mutex<MyRng>>) -> Self {
         ConcreteRFConfig {
             rng: {
                 let mut guard = shared_initial_rng.lock().unwrap();

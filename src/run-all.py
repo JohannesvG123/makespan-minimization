@@ -21,21 +21,22 @@ if 'Windows' in platform.platform():
 else:
     mm = 'target/debug/makespan-minimization '
 
-start_time = time.time()
-s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+for r in range(10): #todo how many times to run
+    start_time = time.time()
+    s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
-for file in os.listdir("./benchmarks"):
-    if os.path.isfile('./benchmarks/' + file) and ".txt" in file:
-        print("starting with input: '" + file + "'")
+    for file in os.listdir("./benchmarks"):
+        if os.path.isfile('./benchmarks/' + file) and ".txt" in file:
+            print("starting with input: '" + file + "'")
 
-        os.system(
-            f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs_{s}.txt")  # --write --write-separate-files
+            os.system(
+                f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs_{s}.txt")  # --write --write-separate-files
 
-        print("end with input: '" + file + "' -----------------------\n")
+            print("end with input: '" + file + "' -----------------------\n")
 
-end_time = time.time()
-print(f"time: {end_time - start_time} sec")
-logs = open(f"logs_{s}.txt", 'a')
-logs.write(f"\ntime: {end_time - start_time} sec\n")
-logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
-print(f"generated logs are written in logs_{s}.txt")
+    end_time = time.time()
+    print(f"time: {end_time - start_time} sec")
+    logs = open(f"logs_{s}.txt", 'a')
+    logs.write(f"\ntime: {end_time - start_time} sec\n")
+    logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+    print(f"generated logs are written in logs_{s}.txt")

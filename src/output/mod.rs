@@ -8,6 +8,7 @@ use chrono::Local;
 use permutation::Permutation;
 use rayon::current_thread_index;
 
+use crate::Algorithm;
 use crate::output::solution::Solution;
 
 pub mod data;
@@ -15,7 +16,7 @@ pub mod machine_jobs;
 pub mod schedule;
 pub mod solution;
 
-pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool,measurement:bool) {
+pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool, measurement: bool) {
     if write {
         let output_string = solution.to_output_string(perm);
 
@@ -56,7 +57,7 @@ pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool,
             }
         }
     } else {
-        log(solution.to_string()+"\n",true,measurement);
+        log(solution.to_string() + "\n", true, measurement, None);
     }
 }
 
@@ -71,14 +72,18 @@ pub fn get_directory_name(directory_name: Option<String>, input_file_name: &str)
 }
 
 ///used for logging (also prints the current thread index if available)
-pub fn log(message: String, needed_for_measurement: bool, measurement: bool) {
+pub fn log(message: String, needed_for_measurement: bool, measurement: bool, currently_running_algo: Option<Algorithm>) {
     if !measurement || needed_for_measurement {
         let thread_opt = current_thread_index();
         let thread = match thread_opt {
             None => { String::new() }
-            Some(t) => { format!("thread_{}: ", t) }
+            Some(t) => { format!("thread_{}", t) }
+        };
+        let algo = match currently_running_algo {
+            None => { String::new() }
+            Some(a) => { format!("_{:?}", a) }
         };
 
-        println!("{}{}", thread, message)
+        println!("{}{}: {}", thread, algo, message)
     }
 }

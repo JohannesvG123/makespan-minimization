@@ -35,7 +35,7 @@ impl LPTScheduler {
 
     /// Assigns the biggest job to the least loaded machine until all jobs are assigned (= worst fit)
     fn longest_processing_time(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", LPT),false,args.measurement);
+        log(format!("running {:?} algorithm...", LPT),false,args.measurement,None);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -48,7 +48,7 @@ impl LPTScheduler {
 
         for job_index in 0..self.input.get_job_count() {
             if machine_jobs.get_machine_workload(current_machine) + jobs[job_index] > upper_bound { //satisfiability check
-                log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, LPT),false,args.measurement);
+                log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, LPT),false,args.measurement,Some(LPT));
                 return Solution::unsatisfiable(LPT);
             }
             machine_jobs.assign_job(jobs[job_index], current_machine, job_index);

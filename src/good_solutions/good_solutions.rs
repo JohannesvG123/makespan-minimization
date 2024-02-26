@@ -55,6 +55,26 @@ impl GoodSolutions {
         }
     }
 
+    /// returns cloned x-th best solution or None (ATTENTION: if there are n<x solutions the n-th solution will be returned)
+    pub fn get_x_best_solution(&self, x: usize) -> Option<Solution> {
+        if self.solutions.len() - 1 < x {
+            match self.solutions.last() {
+                None => {}
+                Some((_, solution)) => { return Some(solution); }
+            }
+        } else {
+            let mut i = 0;
+            for (_, solution) in self.solutions.iter() {
+                if i == x {
+                    return Some(solution);
+                }
+                i += 1;
+            }
+            println!("ahhhhh");
+        }
+        None
+    }
+
     /// returns cloned best n solutions (or fewer, when there are no n solutions)
     pub fn get_best_solutions(&self, n: usize) -> Vec<Solution> {
         let mut solutions = vec![];
@@ -76,7 +96,7 @@ impl GoodSolutions {
     }
 
     pub fn write_output(&self, perm: Arc<Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool, measurement: bool) {
-        log(String::from("writing output..."), false, measurement);
+        log(String::from("writing output..."), false, measurement, None);
 
 
         let directory_name_str = get_directory_name(directory_name, input_file_name);

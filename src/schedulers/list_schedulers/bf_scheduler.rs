@@ -35,7 +35,7 @@ impl BFScheduler {
 
     /// Assigns the biggest job to the most loaded machine (that can fit the job) until all jobs are assigned
     pub fn best_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", BF),false,args.measurement);
+        log(format!("running {:?} algorithm...", BF),false,args.measurement,None);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -55,7 +55,7 @@ impl BFScheduler {
                 }
             }
             if !fitting_machine_found { //satisfiability check
-                log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF),false,args.measurement);
+                log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, BF),false,args.measurement,Some(BF));
                 return Solution::unsatisfiable(BF);
             }
 
