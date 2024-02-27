@@ -109,7 +109,6 @@ impl Swapper {
     /// the best one gets returned
     fn swap(&self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", Swap), false, args.measurement, None);
-        println!("{:?}", self.config);
 
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
@@ -120,11 +119,10 @@ impl Swapper {
                 Some(n) => { n }
             };
 
-            /*while good_solutions.get_solution_count() < self.config.number_of_solutions {
+            while good_solutions.get_solution_count() < number_of_solutions {
                 //TODO 1 should terminate methode hier aufrufen oder yielding bzw active waiting (iwan abbruch -> durch cmd arg spezifizieren)
-                sleep(Duration::from_millis(100));
                 log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement, Some(Swap));
-            }*/
+            }
 
             //todo beachten wenn man mit number_of_solutions:ALL aufruft spawnt man viele unendlich lang laufende threads evtl -> timeout/abbruchkriterium in der loop hinzufügen oder so evtl?
 
