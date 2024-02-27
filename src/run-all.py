@@ -8,11 +8,12 @@ import time
 # run config on all instances (==.txt files) in benchmarks directory
 # example config: "--bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,,"
 
-if len(sys.argv) < 2:
-    print(f"ERROR: Usage: {sys.argv[0]} \"makespan-minimization-args(without --path and --write)\"")
+if len(sys.argv) < 3:
+    print(f"ERROR: Usage: {sys.argv[0]} \"makespan-minimization-args(without --path and --write)\" #runs")
     exit(0)
 
 args = sys.argv[1]
+runs = int(sys.argv[2])
 
 os.system('cargo build')
 mm = ''
@@ -21,7 +22,7 @@ if 'Windows' in platform.platform():
 else:
     mm = 'target/debug/makespan-minimization '
 
-for r in range(10): #todo how many times to run
+for r in range(runs):
     start_time = time.time()
     s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 

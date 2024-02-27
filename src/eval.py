@@ -20,6 +20,7 @@ def run():
             upper_bounds: list[([float], [int])] = []  # upper_bounds[instance_index]=(list of time,list of new bound)
             lower_bounds: list[([float], [int])] = []
             config = ""
+            runtimes = []
 
             for line in lines:
                 if "start with input" in line:
@@ -31,6 +32,7 @@ def run():
                     x = re.findall("[^\s-]*", x[0])
                     t = float(x[1])
                     runtime += t
+                    runtimes.append(t)
                     if "found OPT solution" in line:
                         opt_found += 1
                     if "all algorithms finished" in line:
@@ -57,7 +59,7 @@ def run():
 
             measurements.append(
                 (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds, config,
-                 instance_names))
+                 instance_names, runtimes))
     return measurements
 
 
