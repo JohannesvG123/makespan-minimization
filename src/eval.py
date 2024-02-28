@@ -21,6 +21,7 @@ def run():
             lower_bounds: list[([float], [int])] = []
             config = ""
             runtimes = []
+            opt_found_per_instance = []
 
             for line in lines:
                 if "start with input" in line:
@@ -35,10 +36,13 @@ def run():
                     runtimes.append(t)
                     if "found OPT solution" in line:
                         opt_found += 1
+                        opt_found_per_instance.append(True)
                     if "all algorithms finished" in line:
                         all_algos_finished += 1
+                        opt_found_per_instance.append(False)
                     if "timeout" in line:
                         timeout += 1
+                        opt_found_per_instance.append(False)
                 if "trivial bounds:" in line:
                     ub = int((line.split('UB:')[1]).split(' ')[0])
                     lb = int((line.split('LB:')[1]).split(' ')[0])
@@ -59,7 +63,7 @@ def run():
 
             measurements.append(
                 (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds, config,
-                 instance_names, runtimes))
+                 instance_names, runtimes, opt_found_per_instance))
     return measurements
 
 
