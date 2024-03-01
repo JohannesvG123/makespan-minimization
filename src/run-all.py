@@ -8,12 +8,13 @@ import time
 # run config on all instances (==.txt files) in benchmarks directory
 # example config: "--bf --lpt --rr --rf --swap --ff --rf-configs , --swap-configs ,,"
 
-if len(sys.argv) < 3:
-    print(f"ERROR: Usage: {sys.argv[0]} \"makespan-minimization-args(without --path and --write)\" #runs")
+if len(sys.argv) < 4:
+    print(f"ERROR: Usage: {sys.argv[0]} \"makespan-minimization-args(without --path and --write)\" #runs name")
     exit(0)
 
 args = sys.argv[1]
 runs = int(sys.argv[2])
+name = sys.argv[3]
 
 os.system('cargo build')
 mm = ''
@@ -40,4 +41,5 @@ for r in range(runs):
     logs = open(f"logs_{s}.txt", 'a')
     logs.write(f"\ntime: {end_time - start_time} sec\n")
     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+    logs.write(f"\nNAME: {name}_{r}\n")
     print(f"generated logs are written in logs_{s}.txt")

@@ -22,6 +22,7 @@ def run():
             config = ""
             runtimes = []
             opt_found_per_instance = []
+            name = ""
 
             for line in lines:
                 if "start with input" in line:
@@ -60,10 +61,12 @@ def run():
                     (lower_bounds[instances - 1][1]).append(lb)
                 if "FRAMEWORK_CONFIG:" in line:
                     config = line.split('FRAMEWORK_CONFIG:')[1].strip()
+                if "NAME: " in line:
+                    name = line.split('NAME:')[1].strip()
 
             measurements.append(
                 (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds, config,
-                 instance_names, runtimes, opt_found_per_instance))
+                 instance_names, runtimes, opt_found_per_instance, name))
     return measurements
 
 
