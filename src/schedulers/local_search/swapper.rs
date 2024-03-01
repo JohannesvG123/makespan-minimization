@@ -11,6 +11,7 @@ use permutation::Permutation;
 use rand::Rng;
 use rand_distr::Distribution;
 use rand_distr::Exp;
+use rayon::current_num_threads;
 use regex::Regex;
 
 use crate::{Algorithm, Args};
@@ -115,16 +116,14 @@ impl Swapper {
         rayon::scope(move |s| {
             //get solutions:
             let number_of_solutions = match self.config.number_of_solutions {
-                None => { good_solutions.get_solution_count() }
+                None => { current_num_threads() }
                 Some(n) => { n }
             };
 
-            while good_solutions.get_solution_count() < number_of_solutions {
+            while good_solutions.get_solution_count() < number_of_solutions { //TODO oder auf eine solution warten
                 //TODO 1 should terminate methode hier aufrufen oder yielding bzw active waiting (iwan abbruch -> durch cmd arg spezifizieren)
                 log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement, Some(Swap));
             }
-
-            //todo beachten wenn man mit number_of_solutions:ALL aufruft spawnt man viele unendlich lang laufende threads evtl -> timeout/abbruchkriterium in der loop hinzufügen oder so evtl?
 
             let mut old_solutions = Arc::new(good_solutions.get_best_solutions(number_of_solutions));
             //let best_c_max = old_solutions.last().unwrap().get_data().get_c_max();
@@ -425,7 +424,7 @@ impl FromStr for SwapConfig {
             },
             number_of_solutions: {
                 if parts.len() > 2 && parts[2].len() > 0 {
-                    if parts[2] == "all" {
+                    if parts[2] == "max" {
                         None
                     } else {
                         Some(parts[2].parse::<usize>().unwrap())

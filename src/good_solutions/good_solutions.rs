@@ -37,7 +37,11 @@ impl GoodSolutions {
                     }
                 }
                 //new_solution is actually new
-                new_index = solutions_to_check.pop().unwrap().0.1 + 1;
+                let old_index = match solutions_to_check.pop() {
+                    None => { return; } //tritt nur ein, wenn solutions_to_check leer ist wegen paralleler Ausführung
+                    Some(((_, i), _)) => { i }
+                };
+                new_index = old_index + 1;
             }
             self.solutions.insert((new_c_max, new_index), new_solution);
             while self.solutions.len() > self.max_capacity {
