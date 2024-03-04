@@ -24,10 +24,12 @@ def run():
             opt_found_per_instance = []
             name = ""
 
+            between_start_end = False  # for the case when opt is found aut t=timeout_time (then it can happen, that two END messages are printed)
             for line in lines:
                 if "start with input" in line:
                     instances += 1
                     instance_names.append(line.split("\"")[1])
+                    between_start_end = True
                 if "END" in line:
                     # extract time:
                     x = re.findall(" \d+\.\d+", line)
@@ -35,6 +37,9 @@ def run():
                     t = float(x[1])
                     runtime += t
                     runtimes.append(t)
+                    if not between_start_end:
+                        print("ACHTUNG das sollte seit commit \"bugfix (duplicated END)\" nicht mehr passieren!", t)
+                    between_start_end = False
                     if "found OPT solution" in line:
                         opt_found += 1
                         opt_found_per_instance.append(True)
