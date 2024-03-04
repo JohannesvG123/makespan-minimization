@@ -105,8 +105,12 @@ impl GoodSolutions {
 
         let directory_name_str = get_directory_name(directory_name, input_file_name);
 
-        for (_, solution) in self.solutions.iter() {
-            output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
+        if measurement {
+            output_solution(&self.get_best_solution().unwrap(), Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
+        } else {
+            for (_, solution) in self.solutions.iter() {
+                output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
+            }
         }
     }
 }
