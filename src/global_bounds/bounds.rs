@@ -69,10 +69,13 @@ impl Bounds {
                 None => {}
                 Some(opt_c_max) => {
                     if new_upper_bound == opt_c_max {
-                        log(format!("END after: {:?} sec (found OPT solution)", start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
-                        let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                        output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true, args.measurement);
-                        exit(0)
+                        let t = start_time.elapsed().as_secs_f64();
+                        if t <= args.timeout_after as f64 {
+                            log(format!("END after: {:?} sec (found OPT solution)", t), true, args.measurement, currently_running_algo);
+                            let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
+                            output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true, args.measurement);
+                            exit(0)
+                        }
                     }
                 }
             }
