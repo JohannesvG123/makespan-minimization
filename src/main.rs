@@ -80,7 +80,7 @@ fn main() {
 
     thread_pool.spawn(move || {
         let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone());
-        rayon::scope(move |s| {
+        rayon::scope_fifo(move |s| {
             for algorithm in algos.iter() {
                 let mut config_count: usize = 1;
                 if algorithm == &RF {
@@ -93,7 +93,7 @@ fn main() {
                     //clone references to use them in spawned threads:
                     let (algorithm, good_solutions, input, args, global_bounds, perm, shared_initial_rng) = (algorithm.clone(), good_solutions.clone(), Arc::clone(&input), Arc::clone(&args), Arc::clone(&global_bounds), Arc::clone(&perm), Arc::clone(&shared_initial_rng));
 
-                    s.spawn(move |_| {
+                    s.spawn_fifo(move |_| {
                         let mut scheduler = algorithm_map[algorithm](input, global_bounds, Arc::clone(&args), current_config_id, shared_initial_rng);
                         let solution = scheduler.schedule(good_solutions.clone(), args, perm, start_time);
                         good_solutions.add_solution(solution);
