@@ -59,6 +59,11 @@ def run_all():
                     start_time = time.time()
 
                     s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+                    logs = open(f"logs/logs_{s}.txt", 'a')
+                    logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+                    logs.write(f"NAME: {name}\n")
+                    logs.write(f"{s}\n")
+                    logs.close()
 
                     for file in files_subset:
                         print(f"{i}.: starting with input: '" + file + "'")
@@ -70,12 +75,10 @@ def run_all():
                         print("end with input: '" + file + "' -----------------------\n")
 
                     end_time = time.time()
-                    print(f"time: {end_time - start_time} sec")
                     logs = open(f"logs/logs_{s}.txt", 'a')
                     logs.write(f"\ntime: {end_time - start_time} sec\n")
-                    logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
-                    logs.write(f"\nNAME: {name}\n")
                     print(f"generated logs are written in logs/logs_{s}.txt")
+                    print(f"time: {end_time - start_time} sec")
 
 
 run_all()
