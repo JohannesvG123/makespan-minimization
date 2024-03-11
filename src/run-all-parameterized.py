@@ -1,6 +1,7 @@
 import os
 import platform
 import random
+import subprocess
 import time
 
 
@@ -63,19 +64,18 @@ def run_all():
                     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                     logs.write(f"NAME: {name}\n")
                     logs.write(f"{s}\n")
-                    logs.close()
 
                     for file in files_subset:
                         print(f"{i}.: starting with input: '" + file + "'")
-                        print(f"{mm}--path ./benchmarks/{file} {args}")
-                        os.system(
-                            f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files
+
+                        # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                        subprocess.run([f"{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
+                                       stderr=logs)
 
                         i += 1
                         print("end with input: '" + file + "' -----------------------\n")
 
                     end_time = time.time()
-                    logs = open(f"logs/logs_{s}.txt", 'a')
                     logs.write(f"\ntime: {end_time - start_time} sec\n")
                     print(f"generated logs are written in logs/logs_{s}.txt")
                     print(f"time: {end_time - start_time} sec")
