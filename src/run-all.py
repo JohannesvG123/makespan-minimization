@@ -2,7 +2,6 @@ import os
 import platform
 import sys
 import time
-from threading import Thread
 
 
 # working directory must be "/makespan-minimization"!
@@ -50,7 +49,4 @@ def run_all():
         print(f"generated logs are written in logs_{s}.txt")
 
 
-# Create and launch a thread
-t = Thread(target=run_all, args=())
-t.start()
-print("run-all is now running in the background")
+run_all()
