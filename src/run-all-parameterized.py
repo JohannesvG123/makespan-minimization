@@ -64,13 +64,15 @@ def run_all():
                     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                     logs.write(f"NAME: {name}\n")
                     logs.write(f"{s}\n")
+                    logs.close()
+                    logs = open(f"logs/logs_{s}.txt", 'a')
 
                     for file in files_subset:
                         print(f"{i}.: starting with input: '" + file + "'")
 
                         # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                        subprocess.run([f"{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
-                                       stderr=logs)
+                        subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
+                                       stderr=logs, shell=True)
 
                         i += 1
                         print("end with input: '" + file + "' -----------------------\n")
