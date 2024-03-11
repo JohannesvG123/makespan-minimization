@@ -1,9 +1,26 @@
 import os
 import re
+from dataclasses import dataclass
 
 
 def run():
-    measurements = []
+    @dataclass
+    class Measurement:
+        log_file_name: str
+        instance_count: int
+        runtime_sum_overall: float
+        opt_found_count: int
+        all_algos_finished_count: int
+        timeout_count: int
+        upper_bounds: list[([float], [int])]  # upper_bounds[instance_index]=(list of time,list of new bound)
+        lower_bounds: list[([float], [int])]
+        config: str
+        instance_file_names: list[str]
+        runtimes_per_instance: list[float]
+        opt_found_per_instance: list[bool]
+        config_name: str
+
+    measurements: [Measurement] = []
 
     for file in os.listdir():
         if ".txt" in file and "logs" in file:
@@ -70,8 +87,8 @@ def run():
                     name = line.split('NAME:')[1].strip()
 
             measurements.append(
-                (file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds, lower_bounds, config,
-                 instance_names, runtimes, opt_found_per_instance, name))
+                Measurement(file, instances, runtime, opt_found, all_algos_finished, timeout, upper_bounds,
+                            lower_bounds, config, instance_names, runtimes, opt_found_per_instance, name))
     return measurements
 
 

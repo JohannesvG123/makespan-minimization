@@ -35,7 +35,7 @@ def run_all():
                 print(f"{i}.: starting with input: '" + file + "'")
 
                 os.system(
-                    f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs_{s}.txt")  # --write --write-separate-files
+                    f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs_{s}.txt 2>&1 &")  # --write --write-separate-files
 
                 i += 1
                 print("end with input: '" + file + "' -----------------------\n")
