@@ -170,7 +170,7 @@ struct Args {
 
     /// configurations for running the Swap algo (attention: each config runs forever => using more configs than available threads does not make sense!)
     ///
-    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1],[do_restart_after_steps1],[restart_after_steps1],[restart_possibility1],[random_restart_possibility1],[lambda1]", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
+    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1],[do_restart_after_steps1],[restart_after_steps1],[restart_possibility1],[random_restart_possibility1],[lambda1] todo scaloing factor", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
     swap_configs: Vec<SwapConfig>,//TODO hier Arc verwenden evtl + Hier alle möglichen werte auflisten also alle tactics und nb of solutions= x oder max UND alle defaults usw... (ABER einfach alles in .json auslagern)
 
