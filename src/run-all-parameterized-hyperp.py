@@ -1,4 +1,3 @@
-import os
 import platform
 import subprocess
 import time
@@ -14,7 +13,7 @@ def find_indices(search_list, search_item):
 
 
 def run_all():  # FOR HYPERPARAMETER TUNING
-    os.system('cargo build')
+    # os.system('cargo build')
     mm = ''
     if 'Windows' in platform.platform():
         mm = 'target\debug\makespan-minimization.exe '
@@ -22,24 +21,24 @@ def run_all():  # FOR HYPERPARAMETER TUNING
         mm = 'target/debug/makespan-minimization '
 
     files_subset = [
-        "benchmarks/p_cmax-n10-m2-minsize100-maxsize800-seed5104.txt",
-        "benchmarks/p_cmax-n11-m3-minsize100-maxsize200-seed4462.txt",
-        "benchmarks/p_cmax-n13-m3-minsize100-maxsize200-seed694.txt",
-        "benchmarks/p_cmax-n13-m3-minsize100-maxsize200-seed20154.txt",
-        "benchmarks/p_cmax-n14-m3-minsize1-maxsize100-seed15146.txt",
-        "benchmarks/p_cmax-n14-m3-minsize1-maxsize100-seed15994.txt",
-        "benchmarks/p_cmax-n14-m3-minsize100-maxsize200-seed30986.txt",
-        "benchmarks/p_cmax-n16-m3-minsize1-maxsize100-seed28095.txt",
-        "benchmarks/p_cmax-n16-m3-minsize100-maxsize200-seed11945.txt",
-        "benchmarks/p_cmax-n16-m5-minsize100-maxsize200-seed25087.txt",
-        "benchmarks/p_cmax-n17-m3-minsize100-maxsize200-seed10300.txt",
-        "benchmarks/p_cmax-n20-m4-minsize1-maxsize20-seed14287.txt",
-        "benchmarks/p_cmax-n30-m3-minsize100-maxsize800-seed20478.txt",
-        "benchmarks/p_cmax-n31-m10-minsize1-maxsize100-seed23229.txt",
-        "benchmarks/p_cmax-n31-m10-minsize100-maxsize200-seed15534.txt",
-        "benchmarks/p_cmax-n32-m10-minsize1-maxsize100-seed21779.txt",
-        "benchmarks/p_cmax-n100-m6-minsize100-maxsize800-seed32372.txt",
-        "benchmarks/p_cmax-n100-m10-minsize100-maxsize800-seed21386.txt"]
+        "p_cmax-n10-m2-minsize100-maxsize800-seed5104.txt",
+        "p_cmax-n11-m3-minsize100-maxsize200-seed4462.txt",
+        "p_cmax-n13-m3-minsize100-maxsize200-seed694.txt",
+        "p_cmax-n13-m3-minsize100-maxsize200-seed20154.txt",
+        "p_cmax-n14-m3-minsize1-maxsize100-seed15146.txt",
+        "p_cmax-n14-m3-minsize1-maxsize100-seed15994.txt",
+        "p_cmax-n14-m3-minsize100-maxsize200-seed30986.txt",
+        "p_cmax-n16-m3-minsize1-maxsize100-seed28095.txt",
+        "p_cmax-n16-m3-minsize100-maxsize200-seed11945.txt",
+        "p_cmax-n16-m5-minsize100-maxsize200-seed25087.txt",
+        "p_cmax-n17-m3-minsize100-maxsize200-seed10300.txt",
+        "p_cmax-n20-m4-minsize1-maxsize20-seed14287.txt",
+        "p_cmax-n30-m3-minsize100-maxsize800-seed20478.txt",
+        "p_cmax-n31-m10-minsize1-maxsize100-seed23229.txt",
+        "p_cmax-n31-m10-minsize100-maxsize200-seed15534.txt",
+        "p_cmax-n32-m10-minsize1-maxsize100-seed21779.txt",
+        "p_cmax-n100-m6-minsize100-maxsize800-seed32372.txt",
+        "p_cmax-n100-m10-minsize100-maxsize800-seed21386.txt"]
 
     for do_restart_after_steps in [True, False]:
         for restart_after_steps in [5, 10, 25, 50, 100, 200, 300]:
