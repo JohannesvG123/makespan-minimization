@@ -50,22 +50,22 @@ def run_all():
                 if num_threads == 32:
                     config = config + " " + config + " " + config + " " + config
                 args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
-                name = f"{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
+                name = f"{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,mixed-config"
 
                 start_time = time.time()
 
                 s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                logs = open(f"logs/logs_{s}.txt", 'a')
+                logs = open(f"logsM/logs_{s}.txt", 'a')
                 logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                 logs.write(f"NAME: {name}\n")
                 logs.write(f"{s}\n")
                 logs.close()
-                logs = open(f"logs/logs_{s}.txt", 'a')
+                logs = open(f"logsM/logs_{s}.txt", 'a')
 
                 for file in files_subset:
                     print(f"{i}.: starting with input: '" + file + "'")
 
-                    # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                    # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsM/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
                     subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
                                    stderr=logs, shell=True)
 
@@ -74,7 +74,7 @@ def run_all():
 
                 end_time = time.time()
                 logs.write(f"\ntime: {end_time - start_time} sec\n")
-                print(f"generated logs are written in logs/logs_{s}.txt")
+                print(f"generated logs are written in logsM/logs_{s}.txt")
                 print(f"time: {end_time - start_time} sec")
 
 
