@@ -41,16 +41,13 @@ def run_all():
             files_subset.append(files[i2])
 
     configs = [
-        # "two-job-random-swap,all,max",
-        # "two-job-random-swap,decline-by-5%-chance,max",
-        # "two-job-random-swap,decline-by-20%-chance,max", wegen programmabbruch :c
-        "two-job-random-swap,decline-by-50%-chance,max",
-        "two-job-brute-force,improvement,max",
-        "two-job-brute-force,decline-by-5%-chance,max",
+        "two-job-random-swap,all,max",
+        "two-job-random-swap,decline-by-5%-chance,max",
+        "two-job-random-swap,decline-by-20%-chance,max",
         "two-job-brute-force,decline-by-20%-chance,max",
         "two-job-brute-force,decline-by-50%-chance,max"]
     for timeout_after in [60]:
-        for num_solutions in [500, 5000]:
+        for num_solutions in [5000]:
             for config in configs:
                 for num_threads in [1, 4, 8, 16]:
                     i = 0
