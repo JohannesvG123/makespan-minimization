@@ -40,6 +40,7 @@ def run_all():  # FOR HYPERPARAMETER TUNING
         "p_cmax-n100-m6-minsize100-maxsize800-seed32372.txt",
         "p_cmax-n100-m10-minsize100-maxsize800-seed21386.txt"]
 
+    skip = True
     for do_restart_after_steps in [True, False]:
         for restart_after_steps in [5, 10, 25, 50, 100, 200, 300]:
             for random_restart_possibility in [0.0, 0.25, 0.5, 0.75, 1.0]:
@@ -64,31 +65,35 @@ def run_all():  # FOR HYPERPARAMETER TUNING
                                         args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
                                         name = f"HYPERP-{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
 
-                                        start_time = time.time()
+                                        if name == "HYPERP-8-threads,5000-sol,200s-timeout,,,max,true,25,,2,0.25,5.0":
+                                            skip = False
 
-                                        s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                                        logs = open(f"logsHP/logs_{s}.txt", 'a')
-                                        logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
-                                        logs.write(f"NAME: {name}\n")
-                                        logs.write(f"{s}\n")
-                                        logs.close()
-                                        logs = open(f"logsHP/logs_{s}.txt", 'a')
+                                        if not skip:
+                                            start_time = time.time()
 
-                                        for file in files_subset:
-                                            print(f"{i}.: starting with input: '" + file + "'")
+                                            s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+                                            logs = open(f"logsHP/logs_{s}.txt", 'a')
+                                            logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+                                            logs.write(f"NAME: {name}\n")
+                                            logs.write(f"{s}\n")
+                                            logs.close()
+                                            logs = open(f"logsHP/logs_{s}.txt", 'a')
 
-                                            # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsHP/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                                            subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"],
-                                                           stdout=logs,
-                                                           stderr=logs, shell=True)
+                                            for file in files_subset:
+                                                print(f"{i}.: starting with input: '" + file + "'")
 
-                                            i += 1
-                                            print("end with input: '" + file + "' -----------------------\n")
+                                                # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsHP/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                                                subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"],
+                                                               stdout=logs,
+                                                               stderr=logs, shell=True)
 
-                                        end_time = time.time()
-                                        logs.write(f"\ntime: {end_time - start_time} sec\n")
-                                        print(f"generated logs are written in logsHP/logs_{s}.txt")
-                                        print(f"time: {end_time - start_time} sec")
+                                                i += 1
+                                                print("end with input: '" + file + "' -----------------------\n")
+
+                                            end_time = time.time()
+                                            logs.write(f"\ntime: {end_time - start_time} sec\n")
+                                            print(f"generated logs are written in logsHP/logs_{s}.txt")
+                                            print(f"time: {end_time - start_time} sec")
 
 
 run_all()
