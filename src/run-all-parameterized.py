@@ -36,19 +36,28 @@ def run_all():
         indices = find_indices(files, files_wo_seed[i])
         i1 = indices.pop(random.randint(0, indices.__len__() - 1))
         files_subset.append(files[i1])
-        if indices.__len__() > 0:
-            i2 = indices.pop(random.randint(0, indices.__len__() - 1))
-            files_subset.append(files[i2])
+        # if indices.__len__() > 0: #AUSKOMMENTIEREN FÜR GRÖSSERES TESTSET
+        #     i2 = indices.pop(random.randint(0, indices.__len__() - 1))
+        #     files_subset.append(files[i2])
+
+    os.system(f"{files_subset} >> logs/instances.txt")
+    inst = open(f"logs/instances.txt", 'a')
+    inst.write(f"{files_subset.__len__()}{files_subset}\n")
+    inst.close()
 
     configs = [
         "two-job-random-swap,all,max",
+        "two-job-random-swap,improvement,max",
         "two-job-random-swap,decline-by-5%-chance,max",
         "two-job-random-swap,decline-by-20%-chance,max",
+        "two-job-random-swap,decline-by-50%-chance,max",
+        "two-job-brute-force,improvement,max",
+        "two-job-brute-force,decline-by-5%-chance,max",
         "two-job-brute-force,decline-by-20%-chance,max",
         "two-job-brute-force,decline-by-50%-chance,max"]
-    skip = True
+
     for timeout_after in [60]:
-        for num_solutions in [5000]:
+        for num_solutions in [500, 5000]:
             for config in configs:
                 for num_threads in [1, 4, 8, 16]:
                     i = 0
@@ -56,34 +65,38 @@ def run_all():
                     args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
                     name = f"{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
 
-                    if name == "16-threads,5000-sol,60s-timeout,two-job-random-swap,decline-by-5%-chance,max":
-                        skip = False
+                    prog = open(f"logs/progress.txt", 'a')
+                    prog.write(f"running: {name}")
+                    prog.close()
 
-                    if not skip:
-                        start_time = time.time()
+                    start_time = time.time()
 
-                        s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                        logs = open(f"logs/logs_{s}.txt", 'a')
-                        logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
-                        logs.write(f"NAME: {name}\n")
-                        logs.write(f"{s}\n")
-                        logs.close()
-                        logs = open(f"logs/logs_{s}.txt", 'a')
+                    s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+                    logs = open(f"logs/logs_{s}.txt", 'a')
+                    logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+                    logs.write(f"NAME: {name}\n")
+                    logs.write(f"{s}\n")
+                    logs.close()
+                    logs = open(f"logs/logs_{s}.txt", 'a')
 
-                        for file in files_subset:
-                            print(f"{i}.: starting with input: '" + file + "'")
+                    for file in files_subset:
+                        print(f"{i}.: starting with input: '" + file + "'")
 
-                            # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                            subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
-                                           stderr=logs, shell=True)
+                        # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                        subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
+                                       stderr=logs, shell=True)
 
-                            i += 1
-                            print("end with input: '" + file + "' -----------------------\n")
+                        i += 1
+                        print("end with input: '" + file + "' -----------------------\n")
 
-                        end_time = time.time()
-                        logs.write(f"\ntime: {end_time - start_time} sec\n")
-                        print(f"generated logs are written in logs/logs_{s}.txt")
-                        print(f"time: {end_time - start_time} sec")
+                    end_time = time.time()
+                    logs.write(f"\ntime: {end_time - start_time} sec\n")
+                    print(f"generated logs are written in logs/logs_{s}.txt")
+                    print(f"time: {end_time - start_time} sec")
+
+                    prog = open(f"logs/progress.txt", 'a')
+                    prog.write(f"\nfinished.\n")
+                    prog.close()
 
 
 run_all()
