@@ -15,7 +15,7 @@ def find_indices(search_list, search_item):
 
 
 def run_all():
-    #os.system('cargo build')
+    os.system('cargo build')
     mm = ''
     if 'Windows' in platform.platform():
         mm = 'target\debug\makespan-minimization.exe '

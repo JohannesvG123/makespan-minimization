@@ -114,18 +114,30 @@ impl Swapper {
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
         rayon::scope(move |s| {
-            //get solutions:
-            let number_of_solutions = match self.config.number_of_solutions {
-                None => { current_num_threads() }
-                Some(n) => { n }
+            let number_of_solutions = match self.config.number_of_solutions { //TODO docs schreiben wann gewartet wird und wann nicht usw. und welche solutions genommen werden
+                None => {
+                    //Case: "max"
+                    while good_solutions.get_solution_count() < 1 {
+                        log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement, Some(Swap));
+                    }
+                    current_num_threads()
+                }
+                Some(n) => {
+                    while good_solutions.get_solution_count() < n {
+                        log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement, Some(Swap));
+                    }
+                    n
+                }
             };
 
-            while good_solutions.get_solution_count() < number_of_solutions { //TODO oder auf eine solution warten
-                //TODO 1 should terminate methode hier aufrufen oder yielding bzw active waiting (iwan abbruch -> durch cmd arg spezifizieren)
-                log(String::from("waiting for enough good solutions to run Swap algorithm..."), false, args.measurement, Some(Swap));
+            let mut old_solutions = good_solutions.get_best_solutions(number_of_solutions);
+            let mut tmp_i = 0;
+            while old_solutions.len() < number_of_solutions {
+                //solutions doppelt verwenden
+                old_solutions.push(old_solutions[tmp_i].clone());
+                tmp_i = (tmp_i + 1).rem_euclid(number_of_solutions)
             }
-
-            let mut old_solutions = Arc::new(good_solutions.get_best_solutions(number_of_solutions));
+            let old_solutions = Arc::new(old_solutions);
             //let best_c_max = old_solutions.last().unwrap().get_data().get_c_max();
 
             for i in 0..old_solutions.len() {
