@@ -46,6 +46,7 @@ def run_all():
         "two-job-random-swap,decline-by-20%-chance,max",
         "two-job-brute-force,decline-by-20%-chance,max",
         "two-job-brute-force,decline-by-50%-chance,max"]
+    skip = True
     for timeout_after in [60]:
         for num_solutions in [5000]:
             for config in configs:
@@ -55,30 +56,34 @@ def run_all():
                     args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
                     name = f"{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
 
-                    start_time = time.time()
+                    if name == "16-threads,5000-sol,60s-timeout,two-job-random-swap,decline-by-5%-chance,max":
+                        skip = False
 
-                    s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                    logs = open(f"logs/logs_{s}.txt", 'a')
-                    logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
-                    logs.write(f"NAME: {name}\n")
-                    logs.write(f"{s}\n")
-                    logs.close()
-                    logs = open(f"logs/logs_{s}.txt", 'a')
+                    if not skip:
+                        start_time = time.time()
 
-                    for file in files_subset:
-                        print(f"{i}.: starting with input: '" + file + "'")
+                        s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+                        logs = open(f"logs/logs_{s}.txt", 'a')
+                        logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
+                        logs.write(f"NAME: {name}\n")
+                        logs.write(f"{s}\n")
+                        logs.close()
+                        logs = open(f"logs/logs_{s}.txt", 'a')
 
-                        # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                        subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
-                                       stderr=logs, shell=True)
+                        for file in files_subset:
+                            print(f"{i}.: starting with input: '" + file + "'")
 
-                        i += 1
-                        print("end with input: '" + file + "' -----------------------\n")
+                            # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                            subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
+                                           stderr=logs, shell=True)
 
-                    end_time = time.time()
-                    logs.write(f"\ntime: {end_time - start_time} sec\n")
-                    print(f"generated logs are written in logs/logs_{s}.txt")
-                    print(f"time: {end_time - start_time} sec")
+                            i += 1
+                            print("end with input: '" + file + "' -----------------------\n")
+
+                        end_time = time.time()
+                        logs.write(f"\ntime: {end_time - start_time} sec\n")
+                        print(f"generated logs are written in logs/logs_{s}.txt")
+                        print(f"time: {end_time - start_time} sec")
 
 
 run_all()
