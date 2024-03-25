@@ -28,7 +28,6 @@ impl GoodSolutions {
             //check if new_solution is actually new:
             if self.solutions.contains_key(&(new_c_max, 0)) {
                 //there is already at least one solution with the same c_max
-                //TODO PRIO hier manchmal bug, dass zwischen den zeilken die struktur verändert wird und daher solutions_to_check leer ist
                 let mut solutions_to_check: Vec<_> = self.solutions.range((new_c_max, 0)..(new_c_max + 1, 0)).collect();
                 for (_, solution) in &solutions_to_check {
                     if new_solution == *solution {
@@ -38,7 +37,7 @@ impl GoodSolutions {
                 }
                 //new_solution is actually new
                 let old_index = match solutions_to_check.pop() {
-                    None => { return; } //tritt nur ein, wenn solutions_to_check leer ist wegen paralleler Ausführung
+                    None => { return; } //tritt nur ein, wenn solutions_to_check leer ist wegen paralleler Ausführung -> sonst bug
                     Some(((_, i), _)) => { i }
                 };
                 new_index = old_index + 1;
@@ -99,17 +98,17 @@ impl GoodSolutions {
         self.max_capacity
     }
 
-    pub fn write_output(&self, perm: Arc<Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool, measurement: bool) {
+    pub fn write_output(&self, perm: Arc<Permutation>, write: bool, directory_name: Option<String>, input_file_name: &str, write_separate_files: bool, measurement: bool, jobs: &[u32], machine_count: usize) {
         log(String::from("writing output..."), false, measurement, None);
 
 
         let directory_name_str = get_directory_name(directory_name, input_file_name);
 
         if measurement {
-            output_solution(&self.get_best_solution().unwrap(), Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
+            output_solution(&self.get_best_solution().unwrap(), Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement, jobs, machine_count);
         } else {
             for (_, solution) in self.solutions.iter() {
-                output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement);
+                output_solution(&solution, Arc::clone(&perm), write, directory_name_str.clone(), input_file_name, write_separate_files, measurement, jobs, machine_count);
             }
         }
     }

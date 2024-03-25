@@ -46,7 +46,7 @@ fn main() {
         FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RFScheduler::new(input,global_bounds,&(args.rf_configs[config_id]),shared_initial_rng,None))as Box<dyn Scheduler + Send>,
-        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,//TODO prio clone wegbekommen mit slice/eher arc oder soo oder soo
+        Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,
     };
 
     //start:
@@ -72,14 +72,14 @@ fn main() {
     let global_bounds = Arc::new(Bounds::trivial(Arc::clone(&input), tmp_opt));
     let good_solutions = GoodSolutions::new(args.num_solutions);
 
-    let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone());
+    let (perm_for_output, args_for_output, good_solutions_for_output, input_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone(), Arc::clone(&input));
 
     //log(format!("START: {}", Local::now().format("%H:%M:%S%.f")));
     let start_time = std::time::Instant::now();
     let timeout_duration = Duration::from_secs(args.timeout_after);
 
     thread_pool.spawn(move || {
-        let (perm_for_output, args_for_output, good_solutions_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone());
+        let (perm_for_output, args_for_output, good_solutions_for_output, input_for_output) = (Arc::clone(&perm), Arc::clone(&args), good_solutions.clone(), Arc::clone(&input));
         rayon::scope_fifo(move |s| {
             for algorithm in algos.iter() {
                 let mut config_count: usize = 1;
@@ -102,7 +102,7 @@ fn main() {
             }
         });
         log(format!("END (all algorithms finished) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement, None);
-        good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
+        good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement, input_for_output.get_jobs(), input_for_output.get_machine_count());
         exit(0)
     });
 
@@ -111,7 +111,7 @@ fn main() {
     }
 
     log(format!("END (timeout) after: {:?} sec (OPT not necessarily found)", start_time.elapsed().as_secs_f64()), true, args_for_output.measurement, None);
-    good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement);
+    good_solutions_for_output.write_output(perm_for_output, args_for_output.write, args_for_output.write_directory_name.clone(), args_for_output.path.file_stem().unwrap().to_str().unwrap(), args_for_output.write_separate_files, args_for_output.measurement, input_for_output.get_jobs(), input_for_output.get_machine_count());
 }
 
 fn tmp_get_opt(path_buf: &PathBuf) -> Option<u32> { //tmp
@@ -170,9 +170,9 @@ struct Args {
 
     /// configurations for running the Swap algo (attention: each config runs forever => using more configs than available threads does not make sense!)
     ///
-    /// (SWAP_CONFIG= "[swap_finding_tactic1],[swap_acceptance_rule1],[number_of_solutions1],[do_restart_after_steps1],[restart_after_steps1],[restart_possibility1],[random_restart_possibility1],[lambda1] todo scaloing factor", swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1)
+    /// (SWAP_CONFIG= "[swap_finding_tactic],[swap_acceptance_rule],[number_of_solutions],[do_restart_after_steps],[restart_after_steps],[restart_possibility],[restart_scaling_factor],[random_restart_possibility],[lambda]" swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, other defaults => see implementation)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
-    swap_configs: Vec<SwapConfig>,//TODO hier Arc verwenden evtl + Hier alle möglichen werte auflisten also alle tactics und nb of solutions= x oder max UND alle defaults usw... (ABER einfach alles in .json auslagern)
+    swap_configs: Vec<SwapConfig>,
 
     /// Whether the output should be written in a directory or not
     #[arg(long, action)]

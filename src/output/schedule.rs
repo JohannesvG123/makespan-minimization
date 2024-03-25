@@ -1,4 +1,7 @@
 use std::fmt;
+use std::sync::Arc;
+
+use permutation::Permutation;
 
 use crate::output::machine_jobs::MachineJobs;
 
@@ -38,6 +41,10 @@ impl Schedule {
 
     pub fn add_job(&mut self, machine_number: usize, job_start_time: u32) {
         self.0.push((machine_number, job_start_time));
+    }
+
+    pub fn unsort(&mut self, permutation: Arc<Permutation>) {
+        self.0 = permutation.apply_inv_slice(self.0.as_slice())
     }
 }
 

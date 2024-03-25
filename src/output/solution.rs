@@ -1,4 +1,3 @@
-use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Instant;
@@ -9,6 +8,7 @@ use crate::{Algorithm, Args};
 use crate::global_bounds::bounds::Bounds;
 use crate::output::data::Data;
 use crate::output::machine_jobs::MachineJobs;
+use crate::output::schedule::Schedule;
 
 #[derive(Debug, Clone, Eq)]
 pub struct Solution {
@@ -21,10 +21,9 @@ pub struct Solution {
 
 impl Solution {
     /// creates a new solution, calculates the Schedule and updates the global upper bound
-    pub fn new(used_algorithm: Algorithm, used_config: Option<String>, machine_jobs: MachineJobs, jobs: &[u32], global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Self {
-        //TODO schedule nur on demand ausrechnen
-        let solution = Self { satisfiable: true, used_algorithms: vec![used_algorithm], used_config, data: Some(Data::new(machine_jobs.get_c_max(), machine_jobs.calculate_schedule(jobs), machine_jobs)) };
-        global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args, perm, start_time,Some(used_algorithm));
+    pub fn new(used_algorithm: Algorithm, used_config: Option<String>, machine_jobs: MachineJobs, jobs: &[u32], global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, machine_count: usize) -> Self {
+        let solution = Self { satisfiable: true, used_algorithms: vec![used_algorithm], used_config, data: Some(Data::new(machine_jobs.get_c_max(), machine_jobs)) };
+        global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args, perm, start_time, Some(used_algorithm), jobs, machine_count);
         solution
     }
 
@@ -37,14 +36,17 @@ impl Solution {
         }
     }
 
-    pub fn to_output_string(&self, perm: Arc<Permutation>) -> String {
+    pub fn to_output_string(&self, perm: Arc<Permutation>, jobs: &[u32], machine_count: usize) -> String {
         if self.satisfiable {
             let mut algorithms_str: String = String::new();
             for algorithm in self.used_algorithms.as_slice() {
                 algorithms_str.push_str(format!("{:?}_", algorithm).as_str());
             }
             algorithms_str.pop();
-            format!("{2}\nSCHEDULING_SOLUTION {0} {1}0\nconfig:{3:?}\n\n", self.get_data().get_c_max(), self.get_data().get_unsorted_schedule(perm), algorithms_str, self.used_config)
+
+            let mut schedule = Schedule::from_machine_jobs(self.get_data().get_machine_jobs(), jobs, machine_count);
+            schedule.unsort(perm);
+            format!("{2}\nSCHEDULING_SOLUTION {0} {1}0\nconfig:{3:?}\n\n", self.get_data().get_c_max(), schedule, algorithms_str, self.used_config)
         } else {
             format!("{}\nSCHEDULING_SOLUTION UNSATISFIABLE!\n{:?}\n\n", self.used_algorithms[0], self.used_config)
         }
@@ -95,9 +97,9 @@ impl Solution {
         }
     }
 
-    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant,currently_running_algo:Option<Algorithm>) {
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>) {
         self.get_mut_data().swap_jobs(swap_indices, jobs, machine_count);
-        global_bounds.update_upper_bound(self.get_data().get_c_max(), self, args, perm, start_time,currently_running_algo)
+        global_bounds.update_upper_bound(self.get_data().get_c_max(), self, args, perm, start_time, currently_running_algo, jobs, machine_count)
     }
 }
 
@@ -105,20 +107,5 @@ impl PartialEq for Solution {
     fn eq(&self, other: &Self) -> bool {
         //two solutions are equal even if the used algorithms are different
         self.satisfiable == other.satisfiable && self.data == other.data
-    }
-}
-
-impl fmt::Display for Solution {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.satisfiable {
-            let mut algorithms_str: String = String::new();
-            for algorithm in self.used_algorithms.as_slice() {
-                algorithms_str.push_str(format!("{}_", algorithm).as_str());
-            }
-            algorithms_str.pop();
-            write!(f, "{2}\nSCHEDULING_SOLUTION {0} {1}0\nconfig:{3:?}", self.get_data().get_c_max(), self.get_data().get_schedule(), algorithms_str, self.used_config)
-        } else {
-            write!(f, "{}\nSCHEDULING_SOLUTION UNSATISFIABLE!\nconfig:{:?}", self.used_algorithms[0], self.used_config)
-        }
     }
 }

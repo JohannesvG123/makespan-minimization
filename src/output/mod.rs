@@ -16,9 +16,9 @@ pub mod machine_jobs;
 pub mod schedule;
 pub mod solution;
 
-pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool, measurement: bool) {
+pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool, measurement: bool, jobs: &[u32], machine_count: usize) {
     if write {
-        let output_string = solution.to_output_string(perm);
+        let output_string = solution.to_output_string(perm, jobs, machine_count);
 
         if write_separate_files {
             let mut algorithms_str: String = String::new();
@@ -57,7 +57,7 @@ pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool,
             }
         }
     } else {
-        log(solution.to_string() + "\n", true, measurement, None);
+        log(solution.to_output_string(perm, jobs, machine_count) + "\n", true, measurement, None);
     }
 }
 

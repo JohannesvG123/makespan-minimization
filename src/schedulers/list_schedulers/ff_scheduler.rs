@@ -35,7 +35,7 @@ impl FFScheduler {
 
     /// Assigns the biggest job to the machine with the smallest index until all jobs are assigned
     pub fn first_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
-        log(format!("running {:?} algorithm...", FF),false,args.measurement,None);
+        log(format!("running {:?} algorithm...", FF), false, args.measurement, None);
 
         let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
@@ -49,7 +49,7 @@ impl FFScheduler {
             if machine_jobs.get_machine_workload(current_machine) + jobs[job_index] > upper_bound {
                 current_machine += 1;
                 if current_machine == self.input.get_machine_count() { //satisfiability check
-                    log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, FF),false,args.measurement,Some(FF));
+                    log(format!("ERROR: upper bound {} is to low for the {:?}-algorithm with this input", upper_bound, FF), false, args.measurement, Some(FF));
                     return Solution::unsatisfiable(FF);
                 }
             }
@@ -57,6 +57,6 @@ impl FFScheduler {
             machine_jobs.assign_job(jobs[job_index], current_machine, job_index)
         }
 
-        Solution::new(FF, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time)
+        Solution::new(FF, None, machine_jobs, self.input.get_jobs(), Arc::clone(&self.global_bounds), args, perm, start_time, machine_count)
     }
 }

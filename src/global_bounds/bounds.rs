@@ -55,12 +55,12 @@ impl Bounds {
          self.lower_bound.store(lower_bound, Ordering::Release)
      }*/
 
-    pub fn update_bounds(&self, new_upper_bound: u32, new_lower_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>) {
-        self.update_upper_bound(new_upper_bound, solution, Arc::clone(&args), Arc::clone(&perm), start_time, currently_running_algo);
-        self.update_lower_bound(new_lower_bound, solution, args, perm, start_time, currently_running_algo);
+    pub fn update_bounds(&self, new_upper_bound: u32, new_lower_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>, jobs: &[u32], machine_count: usize) {
+        self.update_upper_bound(new_upper_bound, solution, Arc::clone(&args), Arc::clone(&perm), start_time, currently_running_algo, jobs, machine_count);
+        self.update_lower_bound(new_lower_bound, solution, args, perm, start_time, currently_running_algo, jobs, machine_count);
     }
 
-    pub fn update_upper_bound(&self, new_upper_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>) {
+    pub fn update_upper_bound(&self, new_upper_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>, jobs: &[u32], machine_count: usize) {
         let date = Local::now();
         let prev = self.upper_bound.fetch_min(new_upper_bound, Ordering::AcqRel);
         if new_upper_bound < prev {
@@ -73,7 +73,7 @@ impl Bounds {
                         if t <= args.timeout_after as f64 {
                             log(format!("END after: {:?} sec (found OPT solution)", t), true, args.measurement, currently_running_algo);
                             let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                            output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true, args.measurement);
+                            output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true, args.measurement, jobs, machine_count);
                             exit(0)
                         }
                     }
@@ -82,13 +82,13 @@ impl Bounds {
             if new_upper_bound == self.get_lower_bound() {
                 log(format!("END after: {:?} sec (found OPT solution)", start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement, jobs, machine_count);
                 exit(0)
             }
         }
     }
 
-    pub fn update_lower_bound(&self, new_lower_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>) {
+    pub fn update_lower_bound(&self, new_lower_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>, jobs: &[u32], machine_count: usize) {
         let date = Local::now();
         let prev = self.upper_bound.fetch_max(new_lower_bound, Ordering::AcqRel);
         if new_lower_bound > prev {
@@ -96,7 +96,7 @@ impl Bounds {
             if self.get_upper_bound() == new_lower_bound {
                 log(format!("END after: {:?} sec (found OPT solution)", start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement, jobs, machine_count);
                 exit(0)
             }
         }

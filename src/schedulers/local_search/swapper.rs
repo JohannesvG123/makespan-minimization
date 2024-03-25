@@ -114,7 +114,7 @@ impl Swapper {
         let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
         let best_solution_for_threads = Arc::clone(&best_solution_for_output);
         rayon::scope(move |s| {
-            let number_of_solutions = match self.config.number_of_solutions { //TODO docs schreiben wann gewartet wird und wann nicht usw. und welche solutions genommen werden
+            let number_of_solutions = match self.config.number_of_solutions { //logic when to wait and when not to wait:
                 None => {
                     //Case: "max"
                     while good_solutions.get_solution_count() < 1 {
@@ -132,17 +132,16 @@ impl Swapper {
 
             let mut old_solutions = good_solutions.get_best_solutions(number_of_solutions);
             let mut tmp_i = 0;
-            while old_solutions.len() < number_of_solutions {
+            while old_solutions.len() < number_of_solutions { //only happens if number_of_solutions==max and best_solutions.count<max
                 //solutions doppelt verwenden
                 old_solutions.push(old_solutions[tmp_i].clone());
                 tmp_i = (tmp_i + 1).rem_euclid(number_of_solutions)
             }
             let old_solutions = Arc::new(old_solutions);
-            //let best_c_max = old_solutions.last().unwrap().get_data().get_c_max();
 
             for i in 0..old_solutions.len() {
                 let old_solutions = Arc::clone(&old_solutions);
-                let mut best_solution = Arc::clone(&best_solution_for_threads); //todo ist nur für output daher unnötig und kann weggelassen werden
+                let mut best_solution = Arc::clone(&best_solution_for_threads); //todo ist nur für output daher unnötig und kann weggelassen werden => refractoring
                 let perm = Arc::clone(&perm);
                 let args = Arc::clone(&args);
                 let good_solutions = good_solutions.clone();
@@ -184,10 +183,12 @@ impl Swapper {
 
                     let mut solution = old_solutions[i].clone();
                     solution.add_algorithm(Swap);
-                    solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{:?}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng)); //TODO (low prio) vllt display implementieren für die config
+                    solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{:?}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng));
 
                     let mut restart_after_steps = self.config.restart_after_steps.unwrap();
                     let mut restart_possibility = self.config.restart_possibility.unwrap();
+
+                    let mut rf_scheduler = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap));
 
                     loop {
                         let mut restart = false;
@@ -196,7 +197,7 @@ impl Swapper {
                         while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                             solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap));
                             //add newly found solution to shared structs
-                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, args.clone(), perm.clone(), start_time, Some(Swap)); //todo ihhh .clone ><
+                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), perm.clone(), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count()); //todo ihhh .clone ><
                             good_solutions.add_solution(solution.clone());
                             steps += 1;
                             //println!("{}", steps);
@@ -220,8 +221,8 @@ impl Swapper {
                         let random_restart = concrete_swap_config.rng.get_mut().gen_bool(self.config.random_restart_possibility);
 
                         if random_restart {
-                            //generate new random solution: TODO without bound knowledge
-                            solution = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap)).schedule_without_bounds(good_solutions.clone(), Arc::clone(&args), Arc::clone(&perm), start_time);
+                            //generate new random solution:
+                            solution = rf_scheduler.schedule_without_bounds(Arc::clone(&args), Arc::clone(&perm), start_time);
                         } else {
                             //choose x-th good solution (using exp. distribution):
                             let exp = Exp::new(self.config.lambda).unwrap();
@@ -230,7 +231,7 @@ impl Swapper {
                         }
 
                         solution.add_algorithm(Swap);
-                        solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{:?}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng)); //TODO (low prio) vllt display implementieren für die config
+                        solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{:?}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng));
                     }
                     /*if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method todo kann eig gelöscht werden weil nichtmehr benötigt...
                         let mut bs = best_solution.lock().unwrap();
@@ -321,8 +322,7 @@ impl Swapper {
             } else {
                 fails += 1;
                 if fails == fails_until_stop {
-                    //todo 1 (logging error )
-                    println!("TODO error reached {} fails (2JobRandomSwap)", fails_until_stop);
+                    println!("Error: reached {} fails (2JobRandomSwap)", fails_until_stop);
                     return None;
                 }
             }
@@ -393,7 +393,6 @@ pub struct SwapConfig {
     swap_finding_tactic: SwapTactic,
     swap_acceptance_rule: SwapAcceptanceRule,
     number_of_solutions: Option<usize>,
-    //TODO änderungen in die logs mit aufnehmen
     do_restart_after_steps: bool,
     //true=>restart_after_steps=Some(x);false=>restart_possibility=Some(x)
     restart_after_steps: Option<usize>,
@@ -462,7 +461,7 @@ impl FromStr for SwapConfig {
                 if parts.len() > 4 && parts[4].len() > 0 {
                     Some(parts[4].parse::<usize>().unwrap())
                 } else {
-                    //default: TODO coole Formel um die zu bekommen: Experimente mit einer instanz und vielen durchgängen mit jew. vielen verschiedenen parametern)
+                    //default: TODO coole Formel
                     Some(50)
                 }
             },
@@ -470,31 +469,31 @@ impl FromStr for SwapConfig {
                 if parts.len() > 5 && parts[5].len() > 0 {
                     Some(parts[5].parse::<f64>().unwrap())
                 } else {
-                    //default: TODO coole Formel um die zu bekommen: Experimente mit einer instanz und vielen durchgängen mit jew. vielen verschiedenen parametern)
+                    //default: TODO coole Formel
                     Some(0.05)
                 }
             },
-            restart_scaling_factor: {
+            restart_scaling_factor: { //muss >1 sein
                 if parts.len() > 6 && parts[6].len() > 0 {
                     parts[6].parse::<f64>().unwrap()
                 } else {
-                    //default: //todo experimentieren (muss aber >1 sein)
+                    //default:
                     1.2
                 }
             },
-            random_restart_possibility: {
+            random_restart_possibility: { //prozent 0.0-1.0
                 if parts.len() > 7 && parts[7].len() > 0 {
                     parts[7].parse::<f64>().unwrap()
                 } else {
-                    //default: //Todo prozent 0-100
+                    //default:
                     0.5
                 }
             },
             lambda: {
-                if parts.len() > 8 && parts[8].len() > 0 {
+                if parts.len() > 8 && parts[8].len() > 0 { //0.1 - inf
                     parts[8].parse::<f64>().unwrap()
                 } else {
-                    //default: //TODO  0.1-inf
+                    //default:
                     0.5
                 }
             },

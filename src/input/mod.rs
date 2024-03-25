@@ -20,7 +20,7 @@ pub fn get_input(path_buf: &PathBuf, measurement: bool) -> SortedInput {
 }
 
 fn read_input(path_buf: &PathBuf, measurement: bool) -> String {
-    log(String::from("reading input..."), false, measurement,None);
+    log(String::from("reading input..."), false, measurement, None);
 
     match fs::read_to_string(path_buf) {
         Ok(str) => str,
@@ -29,7 +29,7 @@ fn read_input(path_buf: &PathBuf, measurement: bool) -> String {
 }
 
 fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
-    log(String::from("parsing input..."), false, measurement,None);
+    log(String::from("parsing input..."), false, measurement, None);
 
     let mut split = match input_str.contains(";") {
         true => {
@@ -37,9 +37,9 @@ fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
             (input_str.split("OPT").collect::<Vec<_>>()[0]).split_whitespace()
         }
         false => { input_str.split_whitespace() }
-    };//tmp wieder rauslöschen und drunter auskommentieren (nur für tmp opt benötigt)
+    };//todo tmp wieder rauslöschen und drunter auskommentieren (nur für tmp opt benötigt)
 
-    //let mut split = input_str.split_whitespace(); //TODO (low prio) auf Tokenized umstellen...
+    //let mut split = input_str.split_whitespace(); //(low prio) auf Tokenized umstellen...
 
     let p = split.next().unwrap().to_string();
     let p_cmax = split.next().unwrap().to_string();
