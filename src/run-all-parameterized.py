@@ -43,20 +43,20 @@ def run_all():
             i3 = indices.pop(random.randint(0, indices.__len__() - 1))
             files_subset.append(files[i3])
 
-    os.system(f"{files_subset} >> logs/instances.txt")
-    inst = open(f"logs/instances.txt", 'a')
+    os.system(f"{files_subset} >> logs1/instances.txt")
+    inst = open(f"logs1/instances.txt", 'a')
     inst.write(f"{files_subset.__len__()}{files_subset}\n")
     inst.close()
 
     configs = [
-        "two-job-brute-force,improvement,max",
-        "two-job-random-swap,improvement,max",
-        "mix"]
+        "two-job-brute-force,improvement,max"]
+    # "two-job-random-swap,improvement,max",
+    # "mix"]
 
     for timeout_after in [300]:
-        for num_solutions in [5000]:
+        for num_solutions in [50, 500, 5]:
             for config in configs:
-                for num_threads in [16, 8, 4, 1]:
+                for num_threads in [1, 4, 8]:
                     if config == "mix" and num_threads == 4:
                         break
                     configg = ""
@@ -66,31 +66,31 @@ def run_all():
                         if num_threads == 16:
                             configg = "two-job-random-swap,all,1 two-job-random-swap,decline-by-5%-chance,1 two-job-random-swap,decline-by-20%-chance,1 two-job-random-swap,decline-by-50%-chance,1 two-job-brute-force,improvement,1 two-job-brute-force,decline-by-5%-chance,1 two-job-brute-force,decline-by-20%-chance,1 two-job-brute-force,decline-by-50%-chance,1 two-job-random-swap,all,1 two-job-random-swap,decline-by-5%-chance,1 two-job-random-swap,decline-by-20%-chance,1 two-job-random-swap,decline-by-50%-chance,1 two-job-brute-force,improvement,1 two-job-brute-force,decline-by-5%-chance,1 two-job-brute-force,decline-by-20%-chance,1 two-job-random-swap,improvement,1"
                     else:
-                        configg = configg
+                        configg = config
                     i = 0
 
                     args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {configg} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
                     name = f"{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{configg}"
                     print(name)
 
-                    prog = open(f"logs/progress.txt", 'a')
+                    prog = open(f"logs1/progress.txt", 'a')
                     prog.write(f"running: {name}")
                     prog.close()
 
                     start_time = time.time()
 
                     s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                    logs = open(f"logs/logs_{s}.txt", 'a')
+                    logs = open(f"logs1/logs_{s}.txt", 'a')
                     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                     logs.write(f"NAME: {name}\n")
                     logs.write(f"{s}\n")
                     logs.close()
-                    logs = open(f"logs/logs_{s}.txt", 'a')
+                    logs = open(f"logs1/logs_{s}.txt", 'a')
 
                     for file in files_subset:
                         print(f"{i}.: starting with input: '" + file + "'")
 
-                        # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                        # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs1/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
                         subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"], stdout=logs,
                                        stderr=logs, shell=True)
 
@@ -99,10 +99,10 @@ def run_all():
 
                     end_time = time.time()
                     logs.write(f"\ntime: {end_time - start_time} sec\n")
-                    print(f"generated logs are written in logs/logs_{s}.txt")
+                    print(f"generated logs are written in logs1/logs_{s}.txt")
                     print(f"time: {end_time - start_time} sec")
 
-                    prog = open(f"logs/progress.txt", 'a')
+                    prog = open(f"logs1/progress.txt", 'a')
                     prog.write(f"\nfinished.\n")
                     prog.close()
 
