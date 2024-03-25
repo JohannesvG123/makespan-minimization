@@ -111,8 +111,6 @@ impl Swapper {
     fn swap(&self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", Swap), false, args.measurement, None);
 
-        let best_solution_for_output = Arc::new(Mutex::new(Solution::unsatisfiable(Swap)));
-        let best_solution_for_threads = Arc::clone(&best_solution_for_output);
         rayon::scope(move |s| {
             let number_of_solutions = match self.config.number_of_solutions { //logic when to wait and when not to wait:
                 None => {
@@ -141,7 +139,6 @@ impl Swapper {
 
             for i in 0..old_solutions.len() {
                 let old_solutions = Arc::clone(&old_solutions);
-                let mut best_solution = Arc::clone(&best_solution_for_threads); //todo ist nur für output daher unnötig und kann weggelassen werden => refractoring
                 let perm = Arc::clone(&perm);
                 let args = Arc::clone(&args);
                 let good_solutions = good_solutions.clone();
@@ -197,7 +194,7 @@ impl Swapper {
                         while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                             solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap));
                             //add newly found solution to shared structs
-                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), perm.clone(), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count()); //todo ihhh .clone ><
+                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                             good_solutions.add_solution(solution.clone());
                             steps += 1;
                             //println!("{}", steps);
@@ -233,15 +230,11 @@ impl Swapper {
                         solution.add_algorithm(Swap);
                         solution.add_config(format!("SWAP_CONFIG: SWAP_FINDING_TACTIC:{:?}; SWAP_ACCEPTANCE_RULE:{:?}; NUMBER_OF_SOLUTIONS:{:?}; RNG:{}", self.config.swap_finding_tactic, self.config.swap_acceptance_rule, self.config.number_of_solutions, concrete_swap_config.rng));
                     }
-                    /*if solution.get_data().get_c_max() <= best_c_max { //this is only used for the output of the method todo kann eig gelöscht werden weil nichtmehr benötigt...
-                        let mut bs = best_solution.lock().unwrap();
-                        *bs = solution.clone();
-                    }*/
                 });
             }
         });
 
-        Arc::into_inner(best_solution_for_output).unwrap().into_inner().unwrap()
+        Solution::unsatisfiable(Swap) //not reachable
     }
 
     /// 2 job swap brute force (try all possible swaps)
