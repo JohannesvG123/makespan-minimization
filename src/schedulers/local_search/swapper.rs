@@ -194,8 +194,9 @@ impl Swapper {
                         while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                             solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap));
                             //add newly found solution to shared structs
-                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
-                            good_solutions.add_solution(solution.clone());
+                            self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count()); //TODO frage das auch nur bei restart? eig is immer besser oder
+                            //good_solutions.add_solution(solution.clone()); //TODO das nur lokal halten jeweils oder ganz raus...
+
                             steps += 1;
                             //println!("{}", steps);
 
@@ -215,6 +216,8 @@ impl Swapper {
                             if restart { break; }
                         }
                         //println!("DO RESTART");
+                        good_solutions.add_solution(solution); //TODO vllt noch bounds hier aktualisieren(?) jenachdem ob oben oder nicht
+
                         let random_restart = concrete_swap_config.rng.get_mut().gen_bool(self.config.random_restart_possibility);
 
                         if random_restart {
