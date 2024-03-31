@@ -191,6 +191,8 @@ impl Swapper {
                         let mut restart = false;
                         let mut steps = 0;
 
+                        let mut curr_best_solution = solution.clone();
+                        let mut curr_best_c_max = curr_best_solution.get_data().get_c_max();
                         while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
                             solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap));
                             //add newly found solution to shared structs
@@ -214,8 +216,18 @@ impl Swapper {
                             }
 
                             if restart { break; }
+
+                            let curr_c_max = solution.get_data().get_c_max();
+                            if curr_c_max < curr_best_c_max {
+                                curr_best_solution = solution.clone();
+                                curr_best_c_max = curr_c_max;
+                            }
                         }
                         //println!("DO RESTART");
+
+                        self.global_bounds.update_upper_bound(curr_best_c_max, &curr_best_solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
+                        good_solutions.add_solution(curr_best_solution);
+
                         self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                         good_solutions.add_solution(solution); //TODO vllt noch bounds hier aktualisieren(?) jenachdem ob oben oder nicht
 
