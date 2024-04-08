@@ -61,7 +61,6 @@ impl Bounds {
     }
 
     pub fn update_upper_bound(&self, new_upper_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>, jobs: &[u32], machine_count: usize) {
-        let date = Local::now();
         let prev = self.upper_bound.fetch_min(new_upper_bound, Ordering::AcqRel);
         if new_upper_bound < prev {
             log(format!("NEW upper_bound:{}->{} (after: {:?} sec)", prev, new_upper_bound, start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
