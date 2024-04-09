@@ -187,6 +187,8 @@ impl Swapper {
 
                     let mut rf_scheduler = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap));
 
+                    let mut tmp: Vec<Solution> = vec![]; //TODO wieder löschen wenns nix bringt
+
                     loop {
                         let mut restart = false;
                         let mut steps = 0;
@@ -225,11 +227,21 @@ impl Swapper {
                         }
                         //println!("DO RESTART");
 
-                        self.global_bounds.update_upper_bound(curr_best_c_max, &curr_best_solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
+                        if tmp.len() < 10 {
+                            tmp.push(curr_best_solution);
+                            tmp.push(solution);
+                        } else {
+                            for j in 0..tmp.len() {
+                                let sol = tmp.pop().unwrap();
+                                self.global_bounds.update_upper_bound(sol.get_data().get_c_max(), &sol, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
+                                good_solutions.add_solution(sol); //TODO oder ist das hintereinander das problem (die beiden zeilen)
+                            }
+                        }
+                        /*self.global_bounds.update_upper_bound(curr_best_c_max, &curr_best_solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                         good_solutions.add_solution(curr_best_solution);
 
                         self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
-                        good_solutions.add_solution(solution); //TODO vllt noch bounds hier aktualisieren(?) jenachdem ob oben oder nicht
+                        good_solutions.add_solution(solution); //TODO vllt noch bounds hier aktualisieren(?) jenachdem ob oben oder nicht*/
 
                         let random_restart = concrete_swap_config.rng.get_mut().gen_bool(self.config.random_restart_possibility);
 
