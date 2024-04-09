@@ -187,7 +187,7 @@ impl Swapper {
 
                     let mut rf_scheduler = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap));
 
-                    let mut tmp: Vec<Solution> = vec![]; //TODO wieder löschen wenns nix bringt
+                    let mut map: BTreeMap<u32, Solution> = BTreeMap::new(); //TODO wieder löschen wenns nix bringt
 
                     loop {
                         let mut restart = false;
@@ -227,15 +227,15 @@ impl Swapper {
                         }
                         //println!("DO RESTART");
 
-                        if tmp.len() < 10 {
-                            tmp.push(curr_best_solution);
-                            tmp.push(solution);
-                        } else {
-                            for j in 0..tmp.len() {
-                                let sol = tmp.pop().unwrap();
-                                self.global_bounds.update_upper_bound(sol.get_data().get_c_max(), &sol, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
-                                good_solutions.add_solution(sol); //TODO oder ist das hintereinander das problem (die beiden zeilen)
+                       map.insert(solution.get_data().get_c_max(), solution); //cmax eq entfernen
+                        map.insert(curr_best_c_max, curr_best_solution);
+                        if map.len() > 100 {
+                            for j in 0..10 { //TODO iwan map leeren auch
+                                let (c, s) = map.pop_first().unwrap();
+                                self.global_bounds.update_upper_bound(c, &s, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
+                                good_solutions.add_solution(s);
                             }
+                            map.clear();
                         }
                         /*self.global_bounds.update_upper_bound(curr_best_c_max, &curr_best_solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                         good_solutions.add_solution(curr_best_solution);
