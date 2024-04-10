@@ -23,8 +23,8 @@ impl Data {
 
     ///job_1_index_on_machine means the index of job1 on its current machine (in MachineJobs)
     /// swap_indices=(machine_1_index, job_1_index, machine_2_index, job_2_index)
-    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize) {
-        self.machine_jobs.swap_jobs(swap_indices, jobs);
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, i32), jobs: &[u32], keep_sorted: bool) {
+        self.machine_jobs.swap_jobs(swap_indices, jobs, keep_sorted);
         self.c_max = self.machine_jobs.get_c_max();
     }
 }

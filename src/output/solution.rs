@@ -97,8 +97,8 @@ impl Solution {
         }
     }
 
-    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, usize), jobs: &[u32], machine_count: usize, global_bounds: Arc<Bounds>, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>) {
-        self.get_mut_data().swap_jobs(swap_indices, jobs, machine_count);
+    pub fn swap_jobs(&mut self, swap_indices: (usize, usize, usize, i32), jobs: &[u32], keep_sorted: bool) {
+        self.get_mut_data().swap_jobs(swap_indices, jobs, keep_sorted);
     }
 }
 

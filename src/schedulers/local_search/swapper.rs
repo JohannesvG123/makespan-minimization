@@ -1,4 +1,5 @@
-use std::cmp::max;
+use std::cmp::{max, PartialEq};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::str::FromStr;
 use std::string::ParseError;
@@ -46,7 +47,7 @@ impl Scheduler for Swapper {
 }
 
 ///Tactic to find jobs to swap
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SwapTactic {
     TwoJobBruteForce,
     TwoJobRandomSwap(usize), //fails_until_stop
@@ -187,20 +188,24 @@ impl Swapper {
 
                     let mut rf_scheduler = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap));
 
-                    let mut map: BTreeMap<u32, Solution> = BTreeMap::new(); //TODO wieder löschen wenns nix bringt
+                    let keep_sorted = self.config.swap_finding_tactic == TwoJobBruteForce;
+
+                    let mut map: BTreeMap<u32, Solution> = BTreeMap::new();
 
                     loop {
                         let mut restart = false;
                         let mut steps = 0;
-
+                        if keep_sorted {
+                            solution.get_mut_data().get_mut_machine_jobs().sort_jobs();
+                        }
                         let mut curr_best_solution = solution.clone();
                         let mut curr_best_c_max = curr_best_solution.get_data().get_c_max();
                         while let Some(swap_indices) = (concrete_swap_config.swap_finding_tactic)(self, &solution, &mut concrete_swap_config) {
-                            solution.swap_jobs(swap_indices, self.input.get_jobs(), self.input.get_machine_count(), Arc::clone(&self.global_bounds), Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap));
+                            solution.swap_jobs(swap_indices, self.input.get_jobs(), keep_sorted);
                             //add newly found solution to shared structs
-                            //self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count()); //TODO falls es jetzt schon skaliert kann man das hier drinn lassen. ansonsten evtl auch nur bei restart machen (dann sollte man aber evtl immer die beste solution und die letzte speichern un bei restart weiter geben)
+                            //self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solutls -ion, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count()); //TODO falls es jetzt schon skaliert kann man das hier drinn lassen. ansonsten evtl auch nur bei restart machen (dann sollte man aber evtl immer die beste solution und die letzte speichern und bei restart weiter geben)
                             //good_solutions.add_solution(solution.clone()); // das nur lokal halten jeweils oder ganz raus...
-
+                            //println!("swap");
                             steps += 1;
                             //println!("{}", steps);
 
@@ -227,21 +232,22 @@ impl Swapper {
                         }
                         //println!("DO RESTART");
 
-                       map.insert(solution.get_data().get_c_max(), solution); //cmax eq entfernen
+                        map.insert(solution.get_data().get_c_max(), solution); //todo evtl cmax eq entfernen
                         map.insert(curr_best_c_max, curr_best_solution);
                         if map.len() > 100 {
-                            for j in 0..10 { //TODO iwan map leeren auch
+                            for j in 0..10 {
                                 let (c, s) = map.pop_first().unwrap();
                                 self.global_bounds.update_upper_bound(c, &s, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                                 good_solutions.add_solution(s);
                             }
                             map.clear();
                         }
+
                         /*self.global_bounds.update_upper_bound(curr_best_c_max, &curr_best_solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                         good_solutions.add_solution(curr_best_solution);
 
                         self.global_bounds.update_upper_bound(solution.get_data().get_c_max(), &solution, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
-                        good_solutions.add_solution(solution); //TODO vllt noch bounds hier aktualisieren(?) jenachdem ob oben oder nicht*/
+                        good_solutions.add_solution(solution); */
 
                         let random_restart = concrete_swap_config.rng.get_mut().gen_bool(self.config.random_restart_possibility);
 
@@ -266,14 +272,16 @@ impl Swapper {
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
+    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)> {
         let machine_jobs = solution.get_data().get_machine_jobs();
-        let mut current_c_max = solution.get_data().get_c_max();
-        let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
-        let mut swap_indices: (usize, usize, usize, usize) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
-        let mut swap_found = false;
+        let mut swap_indices: (usize, usize, usize, i32) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
 
-        if current_heaviest_machines.len() == 1 { // otherwise a two job swap does not cause improvements
+        if true {
+
+            //-----------old version--------------------
+            let mut current_c_max = solution.get_data().get_c_max();
+            let current_heaviest_machines = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
+            let mut swap_found = false;
             let m1 = current_heaviest_machines[0];
             for m2 in 0..self.input.get_machine_count() {
                 if m2 == m1 { continue; }
@@ -281,9 +289,9 @@ impl Swapper {
                 let machine_1_jobs = machine_jobs.get_machine_jobs(m1);
                 let machine_2_jobs = machine_jobs.get_machine_jobs(m2);
                 for j1 in 0..machine_1_jobs.len() {
-                    for j2 in 0..machine_2_jobs.len() {
+                    for j2 in 0..machine_2_jobs.len() as i32 { //quadratische laufzeit
                         //for all job pairs (j1,j2) on (m1,m2)
-                        let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2], machine_jobs, current_heaviest_machines.as_slice());
+                        let new_c_max = self.simulate_two_job_swap(m1, machine_1_jobs[j1], m2, machine_2_jobs[j2 as usize], machine_jobs, current_heaviest_machines.as_slice());
                         if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
                             swap_found = true;
                             current_c_max = new_c_max;
@@ -292,17 +300,68 @@ impl Swapper {
                     }
                 }
             }
-        }
 
-        if swap_found {
-            Some(swap_indices)
+            if swap_found {
+                Some(swap_indices)
+            } else {
+                None
+            }
         } else {
-            None
+
+            //-----------NEW version--------------------
+            //TODO macht halt nur mit concrete_swap_config improvement sinn -> siehe onedrive todos
+            //println!("{:?}", machine_jobs);
+            //println!("{:?}", self.input.get_jobs());
+            let jobs = self.input.get_jobs();
+            //let heaviest_machine = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
+            let heaviest_machine_index = machine_jobs.get_heaviest_machine_index();
+            let lightest_machine_index = machine_jobs.get_lightest_machine_index();
+            let heaviest_machine_jobs_indices = machine_jobs.get_machine_jobs(heaviest_machine_index);
+            let lightest_machine_jobs_indices = machine_jobs.get_machine_jobs(lightest_machine_index);
+            let max_diff: i64 = (machine_jobs.get_machine_workload(heaviest_machine_index) - machine_jobs.get_machine_workload(lightest_machine_index) - 1) as i64;
+
+            let (mut pointer_h_m, mut pointer_l_m) = (0, 0); //um aufsteigend jobs der machines durchlaufen
+            //println!("gerade: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index), machine_jobs.get_machine_workload(lightest_machine_index));
+            if lightest_machine_jobs_indices.len() == 0 {
+                //println!("höma");
+                return Some((heaviest_machine_index, heaviest_machine_jobs_indices.len() - 1, lightest_machine_index, -1)); //push the heaviest job on empty machine
+            }
+            let mut swap_found = false;
+            while !swap_found { //lineare laufzeit
+                let mut diff = jobs[heaviest_machine_jobs_indices[pointer_h_m]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
+
+                if diff < 1 {
+                    if pointer_h_m == heaviest_machine_jobs_indices.len() - 1 {
+                        return None;
+                    }
+                    pointer_h_m += 1;
+                } else if diff <= max_diff {
+                    swap_found = true;
+
+                    while pointer_h_m < heaviest_machine_jobs_indices.len() - 1 {
+                        diff = jobs[heaviest_machine_jobs_indices[pointer_h_m + 1]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
+
+                        if diff <= max_diff {
+                            pointer_h_m += 1;
+                            //println!("besser: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - diff, machine_jobs.get_machine_workload(lightest_machine_index) as i64 + diff);
+                        } else {
+                            break;
+                        }
+                    }
+                } else {
+                    if pointer_l_m == lightest_machine_jobs_indices.len() - 1 {
+                        return None;
+                    }
+                    pointer_l_m += 1;
+                }
+            }
+            swap_indices = (heaviest_machine_index, pointer_h_m, lightest_machine_index, pointer_l_m as i32);
+            Some(swap_indices)
         }
     }
 
     /// 2 job random swap
-    fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)> {
+    fn find_random_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)> {
         let fails_until_stop = concrete_swap_config.random_swap_fails_until_stop.unwrap();
         let mut fails: usize = 0;
         let machine_count = self.input.get_machine_count();
@@ -339,7 +398,7 @@ impl Swapper {
                 current_heaviest_machines.as_slice(),
             );
             if (concrete_swap_config.swap_acceptance_rule)(new_c_max, current_c_max, concrete_swap_config) {
-                return Some((m1, j1, m2, j2));
+                return Some((m1, j1, m2, j2 as i32));
             } else {
                 fails += 1;
                 if fails == fails_until_stop {
@@ -425,7 +484,7 @@ pub struct SwapConfig {
 
 #[derive(Clone, Debug)]
 pub struct ConcreteSwapConfig {
-    swap_finding_tactic: fn(&Swapper, &Solution, &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, usize)>,
+    swap_finding_tactic: fn(&Swapper, &Solution, &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)>,
     swap_acceptance_rule: fn(u32, u32, &mut ConcreteSwapConfig) -> bool,
     decline_by_chance_percentage: Option<u8>,
     random_swap_fails_until_stop: Option<(usize)>,
