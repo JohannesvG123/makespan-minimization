@@ -25,7 +25,7 @@ use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::list_schedulers::rf_scheduler::{RFConfig, RFScheduler};
-use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, SimulatedAnnealing};
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, ImprovementOrRsByChance, SimulatedAnnealing};
 use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
 
@@ -54,10 +54,12 @@ pub enum SwapTactic {
 }
 
 ///Rule when to accept a swap
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SwapAcceptanceRule {
     ///accept swap if it improves c_max
     Improvement,
+    ///accept improvements or does a random swap with a p-percent chance (0<=p<=100)
+    ImprovementOrRsByChance(u8),
     ///accept improvements & declines with a p-percent chance (0<=p<=100)
     DeclineByChance(u8),
     ///accept improvements & declines with ...todo (-> https://de.wikipedia.org/wiki/Simulated_Annealing)
@@ -79,30 +81,40 @@ impl Swapper {
         }
     }
 
-    fn accept_improvement(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
-        new_c_max > old_c_max
+    fn accept_improvement(new_c_max: u32, old_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+        new_c_max < old_c_max
     }
 
-    fn accept_decline_by_chance_c(old_c_max: u32, new_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+    fn accept_decline_by_chance_c(new_c_max: u32, old_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         Self::accept_decline_by_chance(old_c_max, new_c_max, concrete_swap_config)
     }
-    fn accept_decline_by_chance(old_c_max: u32, new_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+    fn accept_decline_by_chance(new_c_max: u32, old_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         let percentage = concrete_swap_config.decline_by_chance_percentage.unwrap() as f64 / 100f64;
         debug_assert!(0f64 <= percentage);
         debug_assert!(1f64 >= percentage);
 
-        if new_c_max > old_c_max {
+        if new_c_max < old_c_max {
             true
         } else {
             concrete_swap_config.rng.get_mut().gen_bool(percentage)
         }
     }
 
-    fn accept_decline(old_c_max: u32, new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
-        new_c_max < old_c_max
+    fn accept_improvement_or_rs_by_chance_c(_new_c_max: u32, _old_c_max: u32, concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+        Self::accept_improvement_or_rs_by_chance(concrete_swap_config)
+    }
+    fn accept_improvement_or_rs_by_chance(concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+        let percentage = concrete_swap_config.improvement_or_rs_by_chance_percentage.unwrap() as f64 / 100f64;
+        debug_assert!(0f64 <= percentage);
+        debug_assert!(1f64 >= percentage);
+        !concrete_swap_config.rng.get_mut().gen_bool(percentage)
     }
 
-    fn accept_all(_old_c_max: u32, _new_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+    fn accept_decline(new_c_max: u32, old_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
+        new_c_max > old_c_max
+    }
+
+    fn accept_all(_new_c_max: u32, _old_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
         true
     }
 
@@ -154,12 +166,13 @@ impl Swapper {
                     //new swap acceptance rules can be added here:
                     let swap_acceptance_rule_fn: fn(u32, u32, &mut ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
                         Improvement => Self::accept_improvement,
-                        DeclineByChance(percentage) => Self::accept_decline_by_chance_c,
+                        DeclineByChance(_) => Self::accept_decline_by_chance_c,
                         SimulatedAnnealing => {
                             todo!()
                         }
                         SwapAcceptanceRule::Decline => Self::accept_decline,
                         All => Self::accept_all,
+                        ImprovementOrRsByChance(_) => Self::accept_improvement_or_rs_by_chance_c
                     };
                     let random_swap_fails_until_stop = match self.config.swap_finding_tactic {
                         TwoJobRandomSwap(fails_until_stop) => { Some(fails_until_stop) }
@@ -170,6 +183,10 @@ impl Swapper {
                         _ => { None }
                     };
                     let rng = self.shared_initial_rng.lock().unwrap().generate_new_seed().create_rng();
+                    let improvement_or_rs_by_chance_percentage = match self.config.swap_acceptance_rule {
+                        ImprovementOrRsByChance(percentage) => { Some(percentage) }
+                        _ => { None }
+                    };
 
                     let mut concrete_swap_config = ConcreteSwapConfig {
                         swap_finding_tactic: swap_finding_tactic_fn,
@@ -177,6 +194,7 @@ impl Swapper {
                         decline_by_chance_percentage,
                         random_swap_fails_until_stop,
                         rng,
+                        improvement_or_rs_by_chance_percentage,
                     };
 
                     let mut solution = old_solutions[i].clone();
@@ -276,7 +294,7 @@ impl Swapper {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut swap_indices: (usize, usize, usize, i32) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
 
-        if true {
+        if false {
 
             //-----------old version--------------------
             let mut current_c_max = solution.get_data().get_c_max();
@@ -309,7 +327,6 @@ impl Swapper {
         } else {
 
             //-----------NEW version--------------------
-            //TODO macht halt nur mit concrete_swap_config improvement sinn -> siehe onedrive todos
             //println!("{:?}", machine_jobs);
             //println!("{:?}", self.input.get_jobs());
             let jobs = self.input.get_jobs();
@@ -356,6 +373,15 @@ impl Swapper {
                 }
             }
             swap_indices = (heaviest_machine_index, pointer_h_m, lightest_machine_index, pointer_l_m as i32);
+
+            if (concrete_swap_config.swap_acceptance_rule)(1, 2, concrete_swap_config) {
+                //swap was accepted
+                //println!("accept")
+            } else {
+                //do random swap:
+                swap_indices = self.find_random_two_job_swap_unchecked(solution, concrete_swap_config);
+            }
+
             Some(swap_indices)
         }
     }
@@ -409,6 +435,34 @@ impl Swapper {
         }
     }
 
+    /// 2 job random swap
+    /// unchecked means that the swap does not need to be accepted
+    fn find_random_two_job_swap_unchecked(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> (usize, usize, usize, i32) {
+        let machine_count = self.input.get_machine_count();
+        let machine_jobs = solution.get_data().get_machine_jobs();
+
+        //generate random values
+        let mut m1 = concrete_swap_config.rng.get_mut().gen_range((0..machine_count));
+        let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
+        while machine_1_jobs.len() == 0 {
+            // in case the machine is not used for the schedule
+            m1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
+            machine_1_jobs = machine_jobs.get_machine_jobs(m1);
+        }
+        let mut m2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
+        let mut machine_2_jobs = machine_jobs.get_machine_jobs(m2);
+        while m2 == m1 || machine_2_jobs.len() == 0 {
+            //cant swap from the same machine
+            m2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
+            machine_2_jobs = machine_jobs.get_machine_jobs(m2);
+        }
+        let j1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_1_jobs.len());
+        let j2 = concrete_swap_config.rng.get_mut().gen_range(0..machine_2_jobs.len());
+
+
+        (m1, j1, m2, j2 as i32)
+    }
+
     ///computes the c_max that the current solution would have after a specified swap
     fn simulate_two_job_swap(&self, machine_1_index: usize, job_1_index: usize, machine_2_index: usize, job_2_index: usize, machine_jobs: &MachineJobs, current_heaviest_machines: &[usize]) -> u32 {
         let jobs = self.input.get_jobs();
@@ -460,6 +514,9 @@ impl SwapAcceptanceRule {
                 if Regex::new(r"^decline-by-([0-9]|[1-9][0-9]|100)%-chance$").unwrap().is_match(input) {
                     let p = atoi::<u8>(&input.as_bytes()[11..]).unwrap();
                     Ok(DeclineByChance(p))
+                } else if Regex::new(r"^improvement-or-rs-by-([0-9]|[1-9][0-9]|100)%-chance$").unwrap().is_match(input) { //TODO testen ob es funzt!
+                    let p = atoi::<u8>(&input.as_bytes()[21..]).unwrap();
+                    Ok(ImprovementOrRsByChance(p))
                 } else {
                     Err(format!("invalid variant: {input}"))
                 }
@@ -489,6 +546,7 @@ pub struct ConcreteSwapConfig {
     decline_by_chance_percentage: Option<u8>,
     random_swap_fails_until_stop: Option<(usize)>,
     rng: MyRng,
+    improvement_or_rs_by_chance_percentage: Option<u8>,
 }
 
 impl FromStr for SwapConfig {
