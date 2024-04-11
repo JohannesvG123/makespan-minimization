@@ -318,7 +318,7 @@ impl Swapper {
             let lightest_machine_index = machine_jobs.get_lightest_machine_index();
             let heaviest_machine_jobs_indices = machine_jobs.get_machine_jobs(heaviest_machine_index);
             let lightest_machine_jobs_indices = machine_jobs.get_machine_jobs(lightest_machine_index);
-            let max_diff: i64 = (machine_jobs.get_machine_workload(heaviest_machine_index) - machine_jobs.get_machine_workload(lightest_machine_index) - 1) as i64;
+            let max_diff: i64 = machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - machine_jobs.get_machine_workload(lightest_machine_index) as i64 - 1i64;
 
             let (mut pointer_h_m, mut pointer_l_m) = (0, 0); //um aufsteigend jobs der machines durchlaufen
             //println!("gerade: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index), machine_jobs.get_machine_workload(lightest_machine_index));
