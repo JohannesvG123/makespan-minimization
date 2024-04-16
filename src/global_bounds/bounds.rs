@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Instant;
 
-use chrono::Local;
 use permutation::Permutation;
 
 use crate::{Algorithm, Args};
@@ -74,7 +73,7 @@ impl Bounds {
                         if t <= args.timeout_after as f64 {
                             log(format!("END after: {:?} sec (found OPT solution)", t), true, args.measurement, currently_running_algo);
                             let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                            output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, true, args.measurement, jobs, machine_count);
+                            output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), true, args.measurement, jobs, machine_count);
                             exit(0)
                         }
                     }
@@ -83,21 +82,20 @@ impl Bounds {
             if new_upper_bound == self.get_lower_bound() {
                 log(format!("END after: {:?} sec (found OPT solution)", start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement, jobs, machine_count);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), false, args.measurement, jobs, machine_count);
                 exit(0)
             }
         }
     }
 
     pub fn update_lower_bound(&self, new_lower_bound: u32, solution: &Solution, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant, currently_running_algo: Option<Algorithm>, jobs: &[u32], machine_count: usize) {
-        let date = Local::now();
         let prev = self.upper_bound.fetch_max(new_lower_bound, Ordering::AcqRel);
         if new_lower_bound > prev {
             log(format!("NEW lower_bound:{}->{} (after: {:?} sec)", prev, new_lower_bound, start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
             if self.get_upper_bound() == new_lower_bound {
                 log(format!("END after: {:?} sec (found OPT solution)", start_time.elapsed().as_secs_f64()), true, args.measurement, currently_running_algo);
                 let input_file_name = args.path.file_stem().unwrap().to_str().unwrap();
-                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), input_file_name, false, args.measurement, jobs, machine_count);
+                output_solution(solution, perm, args.write, get_directory_name(args.write_directory_name.clone(), input_file_name), false, args.measurement, jobs, machine_count);
                 exit(0)
             }
         }

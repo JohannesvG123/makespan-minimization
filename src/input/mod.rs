@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
@@ -34,7 +33,7 @@ fn parse_input(input_str: &str, measurement: bool) -> SortedInput {
     let mut split = match input_str.contains(";") {
         true => {
             //tmp_opt case:
-            (input_str.split("OPT").collect::<Vec<_>>()[0]).split_whitespace()
+            input_str.split("OPT").collect::<Vec<_>>()[0].split_whitespace()
         }
         false => { input_str.split_whitespace() }
     };//todo tmp wieder rauslöschen und drunter auskommentieren (nur für tmp opt benötigt)
@@ -116,7 +115,7 @@ impl Default for RngSeed {
 }
 
 impl Display for RngSeed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut out = String::new();
         for val in self.0 {
             out = format!("{}{}/", out, val);

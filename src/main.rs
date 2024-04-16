@@ -1,20 +1,16 @@
 use std::{fmt, fs};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Deref, DerefMut, DivAssign};
 use std::path::PathBuf;
 use std::process::exit;
-use std::str::FromStr;
 use std::string::String;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
 use atoi::atoi;
-use clap::{arg, FromArgMatches, Parser, Subcommand, ValueEnum};
+use clap::{arg, Parser, ValueEnum};
 use enum_map::{Enum, enum_map, EnumMap};
-use rand::{Rng, SeedableRng};
-use rayon::prelude::*;
 
 use crate::Algorithm::{BF, FF, LPT, RF, RR, Swap};
 use crate::global_bounds::bounds::Bounds;
@@ -41,10 +37,10 @@ mod schedulers;
 fn main() {
     //new algorithms can be added here:
     let algorithm_map: EnumMap<Algorithm, fn(Arc<Input>, Arc<Bounds>, Arc<Args>, usize, Arc<Mutex<MyRng>>) -> Box<dyn Scheduler + Send>, > = enum_map! {
-        LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
-        BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
-        RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        LPT => |input:Arc<Input>,global_bounds: Arc<Bounds>, _args: Arc<Args>, _config_id: usize, _shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(LPTScheduler::new(input,global_bounds)) as Box<dyn Scheduler + Send>,
+        BF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, _args: Arc<Args>, _config_id: usize, _shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(BFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        FF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, _args: Arc<Args>, _config_id: usize, _shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(FFScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
+        RR=> |input:Arc<Input>,global_bounds: Arc<Bounds>, _args: Arc<Args>, _config_id: usize, _shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RRScheduler::new(input,global_bounds))as Box<dyn Scheduler + Send>,
         RF=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(RFScheduler::new(input,global_bounds,&(args.rf_configs[config_id]),shared_initial_rng,None))as Box<dyn Scheduler + Send>,
         Swap=> |input:Arc<Input>,global_bounds: Arc<Bounds>, args: Arc<Args>, config_id: usize, shared_initial_rng: Arc<Mutex<MyRng>>| Box::new(Swapper::new(input,global_bounds,args.swap_configs[config_id].clone(),shared_initial_rng))as Box<dyn Scheduler + Send>,
     };
@@ -63,7 +59,7 @@ fn main() {
 
     let shared_initial_rng = Arc::new(Mutex::new(args.rng_seed.create_rng()));
 
-    let mut sorted_input = get_input(&args.path, args.measurement);
+    let sorted_input = get_input(&args.path, args.measurement);
     let input = sorted_input.get_input();
     let perm = sorted_input.get_permutation();
 

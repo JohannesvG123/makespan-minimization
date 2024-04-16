@@ -19,7 +19,7 @@ pub struct FFScheduler {
 }
 
 impl Scheduler for FFScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+    fn schedule(&mut self, _good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         self.first_fit(args, perm, start_time)
     }
 
@@ -37,7 +37,7 @@ impl FFScheduler {
     pub fn first_fit(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", FF), false, args.measurement, None);
 
-        let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
+        let (upper_bound, _lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 

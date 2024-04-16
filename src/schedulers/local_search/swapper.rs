@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use atoi::atoi;
-use clap::ValueEnum;
 use permutation::Permutation;
 use rand::Rng;
 use rand_distr::Distribution;
@@ -62,8 +61,6 @@ pub enum SwapAcceptanceRule {
     ImprovementOrRsByChance(u8),
     ///accept improvements & declines with a p-percent chance (0<=p<=100)
     DeclineByChance(u8),
-    ///accept only declines of c_max (used to get out of local minimum)
-    Decline,
     ///accept all swaps independent of c_max
     All,
 }
@@ -105,10 +102,6 @@ impl Swapper {
         debug_assert!(0f64 <= percentage);
         debug_assert!(1f64 >= percentage);
         !concrete_swap_config.rng.get_mut().gen_bool(percentage)
-    }
-
-    fn accept_decline(new_c_max: u32, old_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
-        new_c_max > old_c_max
     }
 
     fn accept_all(_new_c_max: u32, _old_c_max: u32, _concrete_swap_config: &mut ConcreteSwapConfig) -> bool {
@@ -164,7 +157,6 @@ impl Swapper {
                     let swap_acceptance_rule_fn: fn(u32, u32, &mut ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
                         Improvement => Self::accept_improvement,
                         DeclineByChance(_) => Self::accept_decline_by_chance_c,
-                        SwapAcceptanceRule::Decline => Self::accept_decline,
                         All => Self::accept_all,
                         ImprovementOrRsByChance(_) => Self::accept_improvement_or_rs_by_chance_c
                     };
@@ -537,7 +529,7 @@ pub struct ConcreteSwapConfig {
     swap_finding_tactic: fn(&Swapper, &Solution, &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)>,
     swap_acceptance_rule: fn(u32, u32, &mut ConcreteSwapConfig) -> bool,
     decline_by_chance_percentage: Option<u8>,
-    random_swap_fails_until_stop: Option<(usize)>,
+    random_swap_fails_until_stop: Option<usize>,
     rng: MyRng,
     improvement_or_rs_by_chance_percentage: Option<u8>,
 }

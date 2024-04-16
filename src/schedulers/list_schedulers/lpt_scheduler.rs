@@ -19,7 +19,7 @@ pub struct LPTScheduler {
 }
 
 impl Scheduler for LPTScheduler {
-    fn schedule(&mut self, good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
+    fn schedule(&mut self, _good_solutions: GoodSolutions, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         self.longest_processing_time(args, perm, start_time)
     }
 
@@ -37,7 +37,7 @@ impl LPTScheduler {
     fn longest_processing_time(&self, args: Arc<Args>, perm: Arc<Permutation>, start_time: Instant) -> Solution {
         log(format!("running {:?} algorithm...", LPT), false, args.measurement, None);
 
-        let (upper_bound, lower_bound) = self.global_bounds.get_bounds();
+        let (upper_bound, _lower_bound) = self.global_bounds.get_bounds();
         let machine_count = self.input.get_machine_count();
         let jobs = self.input.get_jobs();
 

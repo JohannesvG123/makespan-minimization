@@ -16,7 +16,7 @@ pub mod machine_jobs;
 pub mod schedule;
 pub mod solution;
 
-pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, input_file_name: &str, write_separate_files: bool, measurement: bool, jobs: &[u32], machine_count: usize) {
+pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool, directory_name: String, write_separate_files: bool, measurement: bool, jobs: &[u32], machine_count: usize) {
     if write {
         let output_string = solution.to_output_string(perm, jobs, machine_count);
 
@@ -26,7 +26,7 @@ pub fn output_solution(solution: &Solution, perm: Arc<Permutation>, write: bool,
                 algorithms_str.push_str(format!("{:?}_", algorithm).as_str());
             }
             let original_filename = format!("{0}solution", algorithms_str);
-            let mut filename = original_filename.clone();
+            let mut filename: String;
             let dir = format!("data/{}", directory_name);
             if !Path::new(&dir).exists() {
                 fs::create_dir(&dir).unwrap();
