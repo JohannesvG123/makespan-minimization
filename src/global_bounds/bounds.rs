@@ -28,8 +28,10 @@ impl Bounds {
     }
 
     pub fn trivial(input: Arc<Input>, tmp_opt: Option<u32>) -> Self {
-        let upper_bound = input.get_jobs().iter().sum::<u32>() / input.get_machine_count() as u32 + input.get_jobs().iter().max().unwrap();
-        let lower_bound = max(*(input.get_jobs().iter().max().unwrap()), input.get_jobs().iter().sum::<u32>().div_ceil(input.get_machine_count() as u32));
+        let jobs = input.get_jobs();
+        let machine_count = input.get_machine_count();
+        let upper_bound = jobs.iter().sum::<u32>() / input.get_machine_count() as u32 + jobs[0];
+        let lower_bound = max(jobs[machine_count - 1] + jobs[machine_count], max(jobs[0], jobs.iter().sum::<u32>().div_ceil(machine_count as u32)));
         log(format!("using the trivial bounds: UB:{} LB:{} ", upper_bound, lower_bound), true, true, None);
         Self::new(upper_bound, lower_bound, tmp_opt)
     }
