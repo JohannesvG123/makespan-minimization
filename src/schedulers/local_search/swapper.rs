@@ -25,8 +25,8 @@ use crate::output::log;
 use crate::output::machine_jobs::MachineJobs;
 use crate::output::solution::Solution;
 use crate::schedulers::list_schedulers::rf_scheduler::{RFConfig, RFScheduler};
-use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, ImprovementOrRsByChance, SimulatedAnnealing};
-use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBruteForce, TwoJobRandomSwap};
+use crate::schedulers::local_search::swapper::SwapAcceptanceRule::{All, DeclineByChance, Improvement, ImprovementOrRsByChance};
+use crate::schedulers::local_search::swapper::SwapTactic::{TwoJobBestSwap, TwoJobRandomSwap};
 use crate::schedulers::scheduler::Scheduler;
 
 pub struct Swapper {
@@ -49,7 +49,7 @@ impl Scheduler for Swapper {
 ///Tactic to find jobs to swap
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SwapTactic {
-    TwoJobBruteForce,
+    TwoJobBestSwap,
     TwoJobRandomSwap(usize), //fails_until_stop
 }
 
@@ -62,9 +62,6 @@ pub enum SwapAcceptanceRule {
     ImprovementOrRsByChance(u8),
     ///accept improvements & declines with a p-percent chance (0<=p<=100)
     DeclineByChance(u8),
-    ///accept improvements & declines with ...todo (-> https://de.wikipedia.org/wiki/Simulated_Annealing)
-    SimulatedAnnealing,
-
     ///accept only declines of c_max (used to get out of local minimum)
     Decline,
     ///accept all swaps independent of c_max
@@ -159,7 +156,7 @@ impl Swapper {
                 s.spawn(move |_| {
                     //new swap tactics can be added here:
                     let swap_finding_tactic_fn = match self.config.swap_finding_tactic {
-                        TwoJobBruteForce => Self::find_brute_force_two_job_swap,
+                        TwoJobBestSwap => Self::find_best_two_job_swap,
                         TwoJobRandomSwap(_) => Self::find_random_two_job_swap,
                     };
 
@@ -167,9 +164,6 @@ impl Swapper {
                     let swap_acceptance_rule_fn: fn(u32, u32, &mut ConcreteSwapConfig) -> bool = match self.config.swap_acceptance_rule {
                         Improvement => Self::accept_improvement,
                         DeclineByChance(_) => Self::accept_decline_by_chance_c,
-                        SimulatedAnnealing => {
-                            todo!()
-                        }
                         SwapAcceptanceRule::Decline => Self::accept_decline,
                         All => Self::accept_all,
                         ImprovementOrRsByChance(_) => Self::accept_improvement_or_rs_by_chance_c
@@ -206,7 +200,7 @@ impl Swapper {
 
                     let mut rf_scheduler = RFScheduler::new(Arc::clone(&self.input), Arc::clone(&self.global_bounds), &RFConfig::new(), Arc::clone(&self.shared_initial_rng), Some(Swap));
 
-                    let keep_sorted = self.config.swap_finding_tactic == TwoJobBruteForce;
+                    let keep_sorted = self.config.swap_finding_tactic == TwoJobBestSwap;
 
                     let mut map: BTreeMap<u32, Solution> = BTreeMap::new();
 
@@ -236,7 +230,7 @@ impl Swapper {
                             } else {
                                 restart = concrete_swap_config.rng.get_mut().gen_bool(restart_possibility);
                                 if restart {
-                                    restart_possibility *= (1.0 / self.config.restart_scaling_factor);
+                                    restart_possibility *= 1.0 / self.config.restart_scaling_factor;
                                 }
                             }
 
@@ -253,7 +247,7 @@ impl Swapper {
                         map.insert(solution.get_data().get_c_max(), solution); //todo evtl cmax eq entfernen
                         map.insert(curr_best_c_max, curr_best_solution);
                         if map.len() > 100 {
-                            for j in 0..10 {
+                            for _j in 0..10 {
                                 let (c, s) = map.pop_first().unwrap();
                                 self.global_bounds.update_upper_bound(c, &s, Arc::clone(&args), Arc::clone(&perm), start_time, Some(Swap), self.input.get_jobs(), self.input.get_machine_count());
                                 good_solutions.add_solution(s);
@@ -290,7 +284,7 @@ impl Swapper {
     }
 
     /// 2 job swap brute force (try all possible swaps)
-    fn find_brute_force_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)> {
+    fn find_best_two_job_swap(&self, solution: &Solution, concrete_swap_config: &mut ConcreteSwapConfig) -> Option<(usize, usize, usize, i32)> {
         let machine_jobs = solution.get_data().get_machine_jobs();
         let mut swap_indices: (usize, usize, usize, i32) = (0, 0, 0, 0); //(machine_1_index, job_1_index, machine_2_index, job_2_index)
 
@@ -397,7 +391,7 @@ impl Swapper {
 
         loop {
             //generate random values
-            let mut m1 = concrete_swap_config.rng.get_mut().gen_range((0..machine_count));
+            let mut m1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
             let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
             while machine_1_jobs.len() == 0 {
                 // in case the machine is not used for the schedule
@@ -442,7 +436,7 @@ impl Swapper {
         let machine_jobs = solution.get_data().get_machine_jobs();
 
         //generate random values
-        let mut m1 = concrete_swap_config.rng.get_mut().gen_range((0..machine_count));
+        let mut m1 = concrete_swap_config.rng.get_mut().gen_range(0..machine_count);
         let mut machine_1_jobs = machine_jobs.get_machine_jobs(m1);
         while machine_1_jobs.len() == 0 {
             // in case the machine is not used for the schedule
@@ -483,7 +477,7 @@ impl Swapper {
 impl SwapTactic {
     pub fn from_str(input: &str) -> Result<Self, String> {
         match input {
-            "two-job-brute-force" => Ok(TwoJobBruteForce),
+            "two-job-best-swap" => Ok(TwoJobBestSwap),
             "two-job-random-swap" => {
                 //default:
                 Ok(TwoJobRandomSwap(50))
@@ -507,7 +501,6 @@ impl SwapAcceptanceRule {
     pub fn from_str(input: &str) -> Result<Self, String> {
         match input {
             "improvement" => Ok(Improvement),
-            "simulated-annealing" => Ok(SimulatedAnnealing),
             "all" => Ok(All),
             _ => {
                 //more complex param (probably)
@@ -560,7 +553,7 @@ impl FromStr for SwapConfig {
                     SwapTactic::from_str(parts[0]).unwrap()
                 } else {
                     //default:
-                    SwapTactic::TwoJobBruteForce
+                    TwoJobBestSwap
                 }
             },
             swap_acceptance_rule: {
@@ -568,7 +561,7 @@ impl FromStr for SwapConfig {
                     SwapAcceptanceRule::from_str(parts[1]).unwrap()
                 } else {
                     //default:
-                    SwapAcceptanceRule::Improvement
+                    Improvement
                 }
             },
             number_of_solutions: {
