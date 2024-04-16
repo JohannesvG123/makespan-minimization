@@ -97,7 +97,7 @@ impl FromStr for RngSeed {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let seed_part = s.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
 
-        let seed_parts: Vec<&str> = seed_part.split("|").collect();
+        let seed_parts: Vec<&str> = seed_part.split("/").collect();
 
         let mut seed: <ChaCha8Rng as SeedableRng>::Seed = Default::default();
         for i in 0..seed_parts.len() {
@@ -119,9 +119,9 @@ impl Display for RngSeed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut out = String::new();
         for val in self.0 {
-            out = format!("{}{}|", out, val);
+            out = format!("{}{}/", out, val);
         }
-        out = out.strip_suffix("|").unwrap().to_string();
+        out = out.strip_suffix("/").unwrap().to_string();
         write!(f, "[{}]", out)
     }
 }
