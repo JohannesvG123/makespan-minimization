@@ -313,56 +313,55 @@ impl Swapper {
         } else {
 
             //-----------NEW version--------------------
-            //println!("{:?}", machine_jobs);
-            //println!("{:?}", self.input.get_jobs());
-            let jobs = self.input.get_jobs();
-            //let heaviest_machine = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
-            let heaviest_machine_index = machine_jobs.get_heaviest_machine_index();
-            let lightest_machine_index = machine_jobs.get_lightest_machine_index();
-            let heaviest_machine_jobs_indices = machine_jobs.get_machine_jobs(heaviest_machine_index);
-            let lightest_machine_jobs_indices = machine_jobs.get_machine_jobs(lightest_machine_index);
-            let max_diff: i64 = machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - machine_jobs.get_machine_workload(lightest_machine_index) as i64 - 1i64;
+            if (concrete_swap_config.swap_acceptance_rule)(1, 2, concrete_swap_config) { //to determine whether the best swap needs to be computed or not
+                //swap will be accepted, sow e compute it:
 
-            let (mut pointer_h_m, mut pointer_l_m) = (0, 0); //um aufsteigend jobs der machines durchlaufen
-            //println!("gerade: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index), machine_jobs.get_machine_workload(lightest_machine_index));
-            if lightest_machine_jobs_indices.len() == 0 {
-                //println!("höma");
-                return Some((heaviest_machine_index, heaviest_machine_jobs_indices.len() - 1, lightest_machine_index, -1)); //push the heaviest job on empty machine
-            }
-            let mut swap_found = false;
-            while !swap_found { //lineare laufzeit
-                let mut diff = jobs[heaviest_machine_jobs_indices[pointer_h_m]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
+                //println!("{:?}", machine_jobs);
+                //println!("{:?}", self.input.get_jobs());
+                let jobs = self.input.get_jobs();
+                //let heaviest_machine = solution.get_data().get_machine_jobs().get_machines_with_workload(current_c_max);
+                let heaviest_machine_index = machine_jobs.get_heaviest_machine_index();
+                let lightest_machine_index = machine_jobs.get_lightest_machine_index();
+                let heaviest_machine_jobs_indices = machine_jobs.get_machine_jobs(heaviest_machine_index);
+                let lightest_machine_jobs_indices = machine_jobs.get_machine_jobs(lightest_machine_index);
+                let max_diff: i64 = machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - machine_jobs.get_machine_workload(lightest_machine_index) as i64 - 1i64;
 
-                if diff < 1 {
-                    if pointer_h_m == heaviest_machine_jobs_indices.len() - 1 {
-                        return None;
-                    }
-                    pointer_h_m += 1;
-                } else if diff <= max_diff {
-                    swap_found = true;
-
-                    while pointer_h_m < heaviest_machine_jobs_indices.len() - 1 {
-                        diff = jobs[heaviest_machine_jobs_indices[pointer_h_m + 1]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
-
-                        if diff <= max_diff {
-                            pointer_h_m += 1;
-                            //println!("besser: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - diff, machine_jobs.get_machine_workload(lightest_machine_index) as i64 + diff);
-                        } else {
-                            break;
-                        }
-                    }
-                } else {
-                    if pointer_l_m == lightest_machine_jobs_indices.len() - 1 {
-                        return None;
-                    }
-                    pointer_l_m += 1;
+                let (mut pointer_h_m, mut pointer_l_m) = (0, 0); //um aufsteigend jobs der machines durchlaufen
+                //println!("gerade: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index), machine_jobs.get_machine_workload(lightest_machine_index));
+                if lightest_machine_jobs_indices.len() == 0 {
+                    //println!("höma");
+                    return Some((heaviest_machine_index, heaviest_machine_jobs_indices.len() - 1, lightest_machine_index, -1)); //push the heaviest job on empty machine
                 }
-            }
-            swap_indices = (heaviest_machine_index, pointer_h_m, lightest_machine_index, pointer_l_m as i32);
+                let mut swap_found = false;
+                while !swap_found { //lineare laufzeit
+                    let mut diff = jobs[heaviest_machine_jobs_indices[pointer_h_m]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
 
-            if (concrete_swap_config.swap_acceptance_rule)(1, 2, concrete_swap_config) {
-                //swap was accepted
-                //println!("accept")
+                    if diff < 1 {
+                        if pointer_h_m == heaviest_machine_jobs_indices.len() - 1 {
+                            return None;
+                        }
+                        pointer_h_m += 1;
+                    } else if diff <= max_diff {
+                        swap_found = true;
+
+                        while pointer_h_m < heaviest_machine_jobs_indices.len() - 1 {
+                            diff = jobs[heaviest_machine_jobs_indices[pointer_h_m + 1]] as i64 - jobs[lightest_machine_jobs_indices[pointer_l_m]] as i64;
+
+                            if diff <= max_diff {
+                                pointer_h_m += 1;
+                                //println!("besser: heavy load={}, light load={}", machine_jobs.get_machine_workload(heaviest_machine_index) as i64 - diff, machine_jobs.get_machine_workload(lightest_machine_index) as i64 + diff);
+                            } else {
+                                break;
+                            }
+                        }
+                    } else {
+                        if pointer_l_m == lightest_machine_jobs_indices.len() - 1 {
+                            return None;
+                        }
+                        pointer_l_m += 1;
+                    }
+                }
+                swap_indices = (heaviest_machine_index, pointer_h_m, lightest_machine_index, pointer_l_m as i32);
             } else {
                 //do random swap:
                 swap_indices = self.find_random_two_job_swap_unchecked(solution, concrete_swap_config);
