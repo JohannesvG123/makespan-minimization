@@ -29,7 +29,7 @@ for threads in [1, 2, 4, 8, 16, 32]:
         print("leggo", threads, i)
         # run_all(files_subsets[i], i,threads)
         p = subprocess.Popen(["python3", "-c",
-                              f"from run_all_parameterized_long import run_all; run_all({files_subsets[i]}, {i},{threads})"])
+                              f"from src.run_all_parameterized_long import run_all; run_all({files_subsets[i]}, {i},{threads})"])
         processes.append(p)
 
     for p in processes:
