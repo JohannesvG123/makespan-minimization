@@ -1,4 +1,3 @@
-import os
 import platform
 import subprocess
 
@@ -33,6 +32,11 @@ def split_list_into_sublists(lst, x):
 
 
 def run_all(files, subset_i, num_threads_extern):
+    if files[0].startswith("tmp_"):
+        # get files from extra file because otherwise cmd args are too long
+        with open(files[0], 'r') as f:
+            files = [line.strip() for line in f]
+
     # os.system('cargo build')
     mm = ''
     if 'Windows' in platform.platform():
@@ -69,8 +73,10 @@ def run_all(files, subset_i, num_threads_extern):
                             print(f"{i}.: starting with input: '" + file + "'")
 
                             # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logs/logs_{s}_{subset_i}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                            subprocess.run([f"./{mm}--path ./benchmarks/all_benchmarks_with_opt/{file} {args} --measurement"], stdout=logs,
-                                           stderr=logs, shell=True)
+                            subprocess.run(
+                                [f"./{mm}--path ./benchmarks/all_benchmarks_with_opt/{file} {args} --measurement"],
+                                stdout=logs,
+                                stderr=logs, shell=True)
 
                             i += 1
                             print("end with input: '" + file + "' -----------------------\n")
@@ -83,5 +89,3 @@ def run_all(files, subset_i, num_threads_extern):
                     prog = open(f"logs/progress.txt", 'a')
                     prog.write(f"\nfinished.\n")
                     prog.close()
-
-

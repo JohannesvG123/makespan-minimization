@@ -28,8 +28,11 @@ for threads in [1, 2, 4, 8, 16, 32]:
     for i in range(files_subsets.__len__()):
         print("leggo", threads, i)
         # run_all(files_subsets[i], i,threads)
+        with open(f"tmp_{threads}_{i}.txt", 'w') as f:
+            for file in files_subsets[i]:
+                f.write(file + '\n')
         p = subprocess.Popen(["python3", "-c",
-                              f"from src.run_all_parameterized_long import run_all; run_all({files_subsets[i]}, {i},{threads})"])
+                              f"from src.run_all_parameterized_long import run_all; run_all({[f'tmp_{threads}_{i}.txt']}, {i},{threads})"])
         processes.append(p)
 
     for p in processes:
