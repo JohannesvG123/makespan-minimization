@@ -33,7 +33,7 @@ for config in ["two-job-best-swap,improvement-or-rs-by-5%-chance,max", "two-job-
                 for file in files_subsets[i]:
                     f.write(file + '\n')
             p = subprocess.Popen(["python3", "-c",
-                                  f"from src.run_all_parameterized_long2 import run_all; run_all({[f'tmp2_{threads}_{i}.txt']}, {i},{threads},{config})"])
+                                  f"from src.run_all_parameterized_long2 import run_all; run_all({[f'tmp2_{threads}_{i}.txt']}, {i},{threads},\"{config})\""])
             processes.append(p)
 
         for p in processes:
