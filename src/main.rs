@@ -50,9 +50,9 @@ fn main() {
     log(format!("\nstart with input {:?}...", args.path), true, true, None);
 
     let mut algos = vec![]; //das muss man gerade so machen, da das cmd-arg Vec<Algos> keine subcommands zulässt...
+    if args.lpt { algos.push(LPT); }
     if args.bf { algos.push(BF); }
     if args.ff { algos.push(FF); }
-    if args.lpt { algos.push(LPT); }
     if args.rf { algos.push(RF); }
     if args.rr { algos.push(RR); }
     if args.swap { algos.push(Swap); }
