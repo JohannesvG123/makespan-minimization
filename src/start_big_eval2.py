@@ -23,19 +23,20 @@ def split_list_into_sublists(lst, x):
 files = os.listdir("./benchmarks/all_benchmarks_with_opt")
 for config in ["two-job-random-swap,improvement,max", "two-job-random-swap,decline-by-5%-chance,max"]:
     for threads in [1, 2, 4, 8, 16, 32]:
-        processes = []
-        files_subsets = split_list_into_sublists(files, int(64 / threads))
-        for i in range(files_subsets.__len__()):
-            print("leggo", threads, i)
-            # run_all(files_subsets[i], i,threads)
-            with open(f"tmp2_{threads}_{i}.txt", 'w') as f:
-                for file in files_subsets[i]:
-                    f.write(file + '\n')
-            p = subprocess.Popen(["python3", "-c",
-                                  f"from src.run_all_parameterized_long2 import run_all; run_all({[f'tmp2_{threads}_{i}.txt']}, {i},{threads},\"{config}\")"])
-            processes.append(p)
+        if (config == "two-job-random-swap,improvement,max" and threads == 1) or config == "two-job-random-swap,decline-by-5%-chance,max":
+            processes = []
+            files_subsets = split_list_into_sublists(files, int(64 / threads))
+            for i in range(files_subsets.__len__()):
+                print("leggo", threads, i)
+                # run_all(files_subsets[i], i,threads)
+                with open(f"tmp2_{threads}_{i}.txt", 'w') as f:
+                    for file in files_subsets[i]:
+                        f.write(file + '\n')
+                p = subprocess.Popen(["python3", "-c",
+                                      f"from src.run_all_parameterized_long2 import run_all; run_all({[f'tmp2_{threads}_{i}.txt']}, {i},{threads},\"{config}\")"])
+                processes.append(p)
 
-        for p in processes:
-            p.wait()
+            for p in processes:
+                p.wait()
 
-        print("FINISHED ", threads, " :)\n")
+            print("FINISHED ", threads, " :)\n")
