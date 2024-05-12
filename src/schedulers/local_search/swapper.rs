@@ -413,7 +413,7 @@ impl Swapper {
             } else {
                 fails += 1;
                 if fails == fails_until_stop {
-                    println!("Error: reached {} fails (2JobRandomSwap)", fails_until_stop);
+                    //println!("Error: reached {} fails (2JobRandomSwap)", fails_until_stop);
                     return None;
                 }
             }
