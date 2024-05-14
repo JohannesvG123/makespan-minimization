@@ -21,9 +21,14 @@ def split_list_into_sublists(lst, x):
 
 
 files = os.listdir("./benchmarks/all_benchmarks_with_opt")
-for config in ["two-job-random-swap,improvement,max", "two-job-random-swap,decline-by-5%-chance,max"]:
-    for threads in [1, 2, 4, 8, 16, 32]:
-        if (config == "two-job-random-swap,improvement,max" and threads == 1) or config == "two-job-random-swap,decline-by-5%-chance,max":
+for config in ["two-job-random-swap,improvement,max",
+               "two-job-best-swap,improvement,8 two-job-best-swap,improvement-or-rs-by-5%-chance,8"
+               "two-job-best-swap,improvement,4 two-job-best-swap,improvement-or-rs-by-5%-chance,4 two-job-random-swap,improvement,4 two-job-random-swap,decline-by-5%-chance,4"
+               "two-job-best-swap,improvement-or-rs-by-5%-chance,8 two-job-random-swap,improvement,8"
+               "two-job-best-swap,improvement,4 two-job-best-swap,improvement-or-rs-by-5%-chance,8 two-job-random-swap,improvement,2 two-job-random-swap,decline-by-5%-chance,2"]:
+    for threads in [16]:
+        if (
+                config == "two-job-random-swap,improvement,max" and threads == 1) or config == "two-job-random-swap,decline-by-5%-chance,max":
             processes = []
             files_subsets = split_list_into_sublists(files, int(64 / threads))
             for i in range(files_subsets.__len__()):

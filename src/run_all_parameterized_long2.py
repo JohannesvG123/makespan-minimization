@@ -32,7 +32,7 @@ def split_list_into_sublists(lst, x):
 
 
 def run_all(files, subset_i, num_threads_extern, config_extern):
-    if files[0].startswith("tmp2_"):
+    if files[0].startswith("tmp3_"):
         # get files from extra file because otherwise cmd args are too long
         with open(files[0], 'r') as f:
             files = [line.strip() for line in f]
@@ -52,25 +52,25 @@ def run_all(files, subset_i, num_threads_extern, config_extern):
                     args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
                     name = f"allInstancesFast-{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
 
-                    prog = open(f"logsA/progress.txt", 'a')
+                    prog = open(f"logsB/progress.txt", 'a')
                     prog.write(f"running: {name}")
                     prog.close()
 
                     start_time = time.time()
 
                     s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                    logs = open(f"logsA/logs_{s}_{subset_i}.txt", 'a')
+                    logs = open(f"logsB/logs_{s}_{subset_i}.txt", 'a')
                     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                     logs.write(f"NAME: {name}\n")
                     logs.write(f"{s}\n")
                     logs.close()
-                    logs = open(f"logsA/logs_{s}_{subset_i}.txt", 'a')
+                    logs = open(f"logsB/logs_{s}_{subset_i}.txt", 'a')
 
                     for file in files:
                         if ".txt" in file:
                             print(f"{i}.: starting with input: '" + file + "'")
 
-                            # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsA/logs_{s}_{subset_i}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                            # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsB/logs_{s}_{subset_i}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
                             subprocess.run(
                                 [f"./{mm}--path ./benchmarks/all_benchmarks_with_opt/{file} {args} --measurement"],
                                 stdout=logs,
@@ -81,9 +81,9 @@ def run_all(files, subset_i, num_threads_extern, config_extern):
 
                     end_time = time.time()
                     logs.write(f"\ntime: {end_time - start_time} sec\n")
-                    print(f"generated logs are written in logsA/logs_{s}_{subset_i}.txt")
+                    print(f"generated logs are written in logsB/logs_{s}_{subset_i}.txt")
                     print(f"time: {end_time - start_time} sec")
 
-                    prog = open(f"logsA/progress.txt", 'a')
+                    prog = open(f"logsB/progress.txt", 'a')
                     prog.write(f"\nfinished.\n")
                     prog.close()
