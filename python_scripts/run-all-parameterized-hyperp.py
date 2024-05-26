@@ -1,4 +1,6 @@
+import os
 import platform
+import random
 import subprocess
 import time
 
@@ -20,25 +22,28 @@ def run_all():  # FOR HYPERPARAMETER TUNING
     else:
         mm = 'target/debug/makespan-minimization '
 
-    files_subset = [
-        "p_cmax-n10-m2-minsize100-maxsize800-seed5104.txt",
-        "p_cmax-n11-m3-minsize100-maxsize200-seed4462.txt",
-        "p_cmax-n13-m3-minsize100-maxsize200-seed694.txt",
-        "p_cmax-n13-m3-minsize100-maxsize200-seed20154.txt",
-        "p_cmax-n14-m3-minsize1-maxsize100-seed15146.txt",
-        "p_cmax-n14-m3-minsize1-maxsize100-seed15994.txt",
-        "p_cmax-n14-m3-minsize100-maxsize200-seed30986.txt",
-        "p_cmax-n16-m3-minsize1-maxsize100-seed28095.txt",
-        "p_cmax-n16-m3-minsize100-maxsize200-seed11945.txt",
-        "p_cmax-n16-m5-minsize100-maxsize200-seed25087.txt",
-        "p_cmax-n17-m3-minsize100-maxsize200-seed10300.txt",
-        "p_cmax-n20-m4-minsize1-maxsize20-seed14287.txt",
-        "p_cmax-n30-m3-minsize100-maxsize800-seed20478.txt",
-        "p_cmax-n31-m10-minsize1-maxsize100-seed23229.txt",
-        "p_cmax-n31-m10-minsize100-maxsize200-seed15534.txt",
-        "p_cmax-n32-m10-minsize1-maxsize100-seed21779.txt",
-        "p_cmax-n100-m6-minsize100-maxsize800-seed32372.txt",
-        "p_cmax-n100-m10-minsize100-maxsize800-seed21386.txt"]
+    files = os.listdir("./benchmarks")
+    files_wo_seed = []
+    files_subset = []  # wird am Ende 2 instanzen jeder größer enthalten (mit 2 verschiedenen seeds):
+    for file in files:
+        if not (os.path.isfile('./benchmarks/' + file) and ".txt" in file):
+            files.remove(file)
+        else:
+            s = file.split("-seed")[0]
+            if not files_wo_seed.__contains__(s):
+                files_wo_seed.append(s)
+    for i in range(files_wo_seed.__len__()):
+        indices = find_indices(files, files_wo_seed[i])
+        i1 = indices.pop(random.randint(0, indices.__len__() - 1))
+        files_subset.append(files[i1])
+        # if indices.__len__() > 0: #AUSKOMMENTIEREN FÜR GRÖSSERES TESTSET
+        #     i2 = indices.pop(random.randint(0, indices.__len__() - 1))
+        #     files_subset.append(files[i2])
+
+    os.system(f"{files_subset} >> logsHPnew/instances.txt")
+    inst = open(f"logsHPnew/instances.txt", 'a')
+    inst.write(f"{files_subset.__len__()}{files_subset}\n")
+    inst.close()
 
     skip = True
     for do_restart_after_steps in [True, False]:
@@ -72,27 +77,28 @@ def run_all():  # FOR HYPERPARAMETER TUNING
                                             start_time = time.time()
 
                                             s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                                            logs = open(f"logsHP/logs_{s}.txt", 'a')
+                                            logs = open(f"logsHPnew/logs_{s}.txt", 'a')
                                             logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                                             logs.write(f"NAME: {name}\n")
                                             logs.write(f"{s}\n")
                                             logs.close()
-                                            logs = open(f"logsHP/logs_{s}.txt", 'a')
+                                            logs = open(f"logsHPnew/logs_{s}.txt", 'a')
 
                                             for file in files_subset:
                                                 print(f"{i}.: starting with input: '" + file + "'")
 
-                                                # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsHP/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                                                subprocess.run([f"./{mm}--path ./benchmarks/{file} {args} --measurement"],
-                                                               stdout=logs,
-                                                               stderr=logs, shell=True)
+                                                # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsHPnew/logs_{s}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
+                                                subprocess.run(
+                                                    [f"./{mm}--path ./benchmarks/{file} {args} --measurement"],
+                                                    stdout=logs,
+                                                    stderr=logs, shell=True)
 
                                                 i += 1
                                                 print("end with input: '" + file + "' -----------------------\n")
 
                                             end_time = time.time()
                                             logs.write(f"\ntime: {end_time - start_time} sec\n")
-                                            print(f"generated logs are written in logsHP/logs_{s}.txt")
+                                            print(f"generated logs are written in logsHPnew/logs_{s}.txt")
                                             print(f"time: {end_time - start_time} sec")
 
 

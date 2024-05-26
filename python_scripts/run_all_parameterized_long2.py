@@ -59,7 +59,7 @@ def run_all(files, subset_i, num_threads_extern, config_extern):
                     start_time = time.time()
 
                     s = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-                    logs = open(f"logsB/logs_{s}_{subset_i}.txt", 'a')
+                    logs = open(f"logs_{s}.txt", 'a')
                     logs.write(f"\nFRAMEWORK_CONFIG: {args}\n")
                     logs.write(f"NAME: {name}\n")
                     logs.write(f"{s}\n")
@@ -71,10 +71,7 @@ def run_all(files, subset_i, num_threads_extern, config_extern):
                             print(f"{i}.: starting with input: '" + file + "'")
 
                             # os.system(f"{mm}--path ./benchmarks/{file} {args} --measurement >> logsB/logs_{s}_{subset_i}.txt 2>&1 &")  # --write --write-separate-files DAS BRAUCHT MAN FÜR WINDOWS!
-                            subprocess.run(
-                                [f"./{mm}--path ./benchmarks/all_benchmarks_with_opt/{file} {args} --measurement"],
-                                stdout=logs,
-                                stderr=logs, shell=True)
+                            subprocess.run([f"./{mm}--path {file} {args} --measurement"], stdout=logs, stderr=logs, shell=True)
 
                             i += 1
                             print("end with input: '" + file + "' -----------------------\n")

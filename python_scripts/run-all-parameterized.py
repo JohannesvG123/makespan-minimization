@@ -22,17 +22,40 @@ def run_all():
         mm = 'target/debug/makespan-minimization '
 
     files = os.listdir("./benchmarks")
+    '''
+    files_wo_seed = []
+    files_subset = []  # wird am Ende 2 instanzen jeder größer enthalten (mit 2 verschiedenen seeds):
+    for file in files:
+        if not (os.path.isfile('./benchmarks/' + file) and ".txt" in file):
+            files.remove(file)
+        else:
+            s = file.split("-seed")[0]
+            if not files_wo_seed.__contains__(s):
+                files_wo_seed.append(s)
+    for i in range(files_wo_seed.__len__()):
+        indices = find_indices(files, files_wo_seed[i])
+        i1 = indices.pop(random.randint(0, indices.__len__() - 1))
+        files_subset.append(files[i1])
+        if indices.__len__() > 0:  # AUSKOMMENTIEREN FÜR GRÖSSERES TESTSET
+            i2 = indices.pop(random.randint(0, indices.__len__() - 1))
+            files_subset.append(files[i2])
+    
+    os.system(f"{files_subset} >> logs/instances.txt")
+    inst = open(f"logs/instances.txt", 'a')
+    inst.write(f"{files_subset.__len__()}{files_subset}\n")
+    inst.close()
+    '''
 
     configs = ["two-job-brute-force,improvement,max"]
 
     for timeout_after in [300]:
         for num_solutions in [500]:
             for config in configs:
-                for num_threads in [1, 2, 4, 8, 16, 32, 64, 128]:
+                for num_threads in [1, 2, 4, 8, 16, 32]:
                     i = 0
                     if config != "two-job-random-swap,decline-by-20%-chance,1 two-job-random-swap,decline-by-5%-chance,1 two-job-random-swap,improvement,1 two-job-random-swap,all,1 two-job-brute-force,improvement,1 two-job-brute-force,improvement-or-rs-by-5%-chance,1 two-job-brute-force,improvement-or-rs-by-20%-chance,1 two-job-brute-force,improvement-or-rs-by-50%-chance,1" or num_threads == 8:
                         args = f"--num-threads {num_threads} --num-solutions {num_solutions} --timeout-after {timeout_after} --swap-configs {config} --bf --ff --lpt --rr --swap --rf --rf-configs , , , ,"
-                        name = f"allInstances-{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
+                        name = f"aLLiNST-{num_threads}-threads,{num_solutions}-sol,{timeout_after}s-timeout,{config}"
 
                         prog = open(f"logs/progress.txt", 'a')
                         prog.write(f"running: {name}")

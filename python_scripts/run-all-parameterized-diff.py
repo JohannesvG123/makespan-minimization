@@ -15,7 +15,7 @@ def find_indices(search_list, search_item):
 
 
 def run_all():
-    #os.system('cargo build')
+    # os.system('cargo build')
     mm = ''
     if 'Windows' in platform.platform():
         mm = 'target\debug\makespan-minimization.exe '
@@ -52,9 +52,9 @@ def run_all():
         "two-job-random-swap,decline-by-20%-chance,max",
         "two-job-random-swap,decline-by-50%-chance,max",
         "two-job-brute-force,improvement,max",
-        "two-job-brute-force,decline-by-5%-chance,max",
-        "two-job-brute-force,decline-by-20%-chance,max",
-        "two-job-brute-force,decline-by-50%-chance,max"]
+        "two-job-brute-force,improvement-rf-by-5%-chance,max",
+        "two-job-brute-force,improvement-rf--by-20%-chance,max",
+        "two-job-brute-force,improvement-rf--by-50%-chance,max"]
 
     for timeout_after in [60]:
         for num_solutions in [500]:

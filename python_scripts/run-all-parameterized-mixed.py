@@ -106,7 +106,7 @@ def run_all():
                     'p_cmax-n13-m3-minsize100-maxsize200-seed6592.txt']
 
     for timeout_after in [60]:
-        for num_solutions in [500,5000]:
+        for num_solutions in [500, 5000]:
             for num_threads in [8, 16]:
                 i = 0
                 config = "two-job-random-swap,all,1 two-job-random-swap,decline-by-5%-chance,1 two-job-random-swap,decline-by-20%-chance,1 two-job-random-swap,decline-by-50%-chance,1 two-job-brute-force,improvement,1 two-job-brute-force,decline-by-5%-chance,1 two-job-brute-force,decline-by-20%-chance,1 two-job-brute-force,decline-by-50%-chance,1"
