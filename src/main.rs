@@ -164,9 +164,9 @@ struct Args {
     #[arg(long, action)]
     swap: bool,
 
-    /// configurations for running the Swap algo (attention: each config runs forever => using more configs than available threads does not make sense!)
+    /// configurations for running the Swap algo (attention: each config runs indefinitely => using more configs than available threads does not make sense!)
     ///
-    /// (SWAP_CONFIG= "[swap_finding_tactic],[swap_acceptance_rule],[number_of_solutions],[do_restart_after_steps],[restart_after_steps],[restart_possibility],[restart_scaling_factor],[random_restart_possibility],[lambda]" swap_finding_tactic-default=two-job-brute-force, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, other defaults => see implementation)
+    /// (SWAP_CONFIG= "[swap_finding_tactic],[swap_acceptance_rule],[number_of_solutions],[do_restart_after_steps],[restart_after_steps],[restart_possibility],[restart_scaling_factor],[random_restart_possibility],[lambda]" swap_finding_tactic-default=two-job-est-swap, swap_acceptance_rule-default = improvement, number_of_solutions-default=1, number_of_solutions=max=num-threads, other value defaults => see implementation)
     #[arg(long, value_name = "SWAP_CONFIG", num_args = 1.., requires = "swap", required_if_eq("swap", "true"))]
     swap_configs: Vec<SwapConfig>,
 
@@ -196,7 +196,7 @@ struct Args {
 
     /// Rng seed used for all rng's in algorithms using randomness (no seed specified => randomly generated default seed will be used)
     ///
-    /// (structure: [val_1|val_2|val_3|...|val_32] )
+    /// (structure: [val_1/val_2/val_3/.../val_32] )
     #[arg(long, default_value_t = RngSeed::default())]
     rng_seed: RngSeed,
 
